@@ -1,13 +1,13 @@
 {
-  "name": "Alarm Otomatis",
-  "short_name": "Alarm",
-  "start_url": "/alarm.html",
+  "name": "Alarm Murottal Al-Quran",
+  "short_name": "Alarm Quran",
+  "start_url": "/alarm-quran.html",
   "display": "standalone",
-  "background_color": "#1e3c72",
-  "theme_color": "#1e3c72",
+  "background_color": "#0d5c3d",
+  "theme_color": "#0d5c3d",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⏰</text></svg>",
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🕌</text></svg>",
       "sizes": "192x192",
       "type": "image/svg+xml"
     }
