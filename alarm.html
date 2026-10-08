@@ -45,6 +45,10 @@
   .alarm-item .info { flex: 1; }
   .alarm-item .time { font-size: 1.2em; font-weight: bold; }
   .alarm-item .detail { font-size: 0.85em; opacity: 0.85; margin-top: 3px; }
+  .alarm-item .qari-tag {
+    display: inline-block; background: #9c27b0; color: #fff;
+    padding: 2px 8px; border-radius: 10px; font-size: 0.75em; margin-top: 3px;
+  }
   .btn-small { padding: 5px 10px; font-size: 0.85em; margin-left: 4px; }
   .btn-del { background: #e53935; }
   .btn-toggle.on { background: #4caf50; }
@@ -66,6 +70,12 @@
     50% { background: linear-gradient(135deg, #1a8f5f, #2bb573); }
   }
   .ringing h2 { font-size: 1.5em; margin: 10px 0; }
+  .qari-display {
+    font-size: 0.9em; opacity: 0.9;
+    background: rgba(156, 39, 176, 0.3);
+    padding: 5px 15px; border-radius: 15px;
+    margin-bottom: 10px;
+  }
   .progress-bar {
     width: 100%; max-width: 400px; height: 8px;
     background: rgba(255,255,255,0.2); border-radius: 4px;
@@ -82,11 +92,13 @@
     direction: rtl; margin: 10px 0; padding: 15px;
     background: rgba(255,255,255,0.1); border-radius: 15px;
     max-width: 95%; min-height: 80px;
+    transition: opacity 0.5s;
   }
   .translation {
     font-style: italic; opacity: 0.95;
     margin: 10px 0; max-width: 95%; font-size: 0.95em;
     padding: 10px; background: rgba(0,0,0,0.15); border-radius: 10px;
+    transition: opacity 0.5s;
   }
   .ayah-ref { font-size: 0.85em; opacity: 0.8; margin: 5px 0; }
   .nav-buttons {
@@ -100,12 +112,46 @@
   .ringing-buttons button { font-size: 1em; padding: 10px 20px; margin: 4px; }
   .snooze-btn { background: #2196f3; }
   .stop-btn { background: #e53935; }
+
+  /* Volume indicator */
+  .volume-indicator {
+    position: fixed; bottom: 20px; right: 20px;
+    background: rgba(0,0,0,0.6); color: #fff;
+    padding: 8px 14px; border-radius: 20px;
+    font-size: 0.85em; display: none;
+    z-index: 10000;
+  }
+  .volume-indicator.active { display: block; animation: fadeIn 0.3s; }
+
+  /* Countdown auto-close */
+  .countdown-box {
+    margin: 15px 0; padding: 15px 20px;
+    background: rgba(255, 235, 59, 0.2);
+    border: 2px solid #ffeb3b;
+    border-radius: 12px;
+    display: none;
+    animation: fadeIn 0.5s;
+  }
+  .countdown-box.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .countdown-text { font-size: 1.1em; font-weight: bold; color: #ffeb3b; margin-bottom: 10px; }
+  .countdown-number { font-size: 2em; font-weight: bold; color: #fff; margin: 5px 0; }
+  .btn-cancel { background: #757575; font-size: 0.9em; padding: 8px 16px; }
+  .btn-cancel:hover { background: #616161; }
+  .finished-icon { font-size: 3em; margin: 10px 0; animation: bounce 1s infinite; }
+  @keyframes bounce {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
 </style>
 </head>
 <body>
 
 <h1>🕌 Alarm Murottal Al-Quran</h1>
-<div class="subtitle">Putar hingga 40 ayat berturut-turut sebagai alarm</div>
+<div class="subtitle">Putar hingga 100 ayat • Pilih qori berbeda per alarm</div>
 <div class="clock" id="clock">--:--:--</div>
 
 <!-- Form tambah alarm -->
@@ -116,7 +162,10 @@
   <input type="time" id="alarmTime">
 
   <label>📝 Label (opsional):</label>
-  <input type="text" id="alarmLabel" placeholder="Contoh: murottal pagi">
+  <input type="text" id="alarmLabel" placeholder="Contoh: murottal subuh">
+
+  <label>🎙️ Pilih Qori:</label>
+  <select id="qariSelect"></select>
 
   <label>📖 Pilih Juz (1-30):</label>
   <select id="juzSelect"><option value="">-- Pilih Juz --</option></select>
@@ -132,7 +181,7 @@
 
   <button onclick="previewAyah()">👁️ Preview Ayat Awal</button>
   <button onclick="addAlarm()">✅ Tambah Alarm</button>
-  <div class="status" id="status">Pilih ayat awal & jumlah ayat untuk alarm</div>
+  <div class="status" id="status">Pilih qori & ayat untuk alarm Anda</div>
   <div id="previewBox" style="margin-top:10px;"></div>
 </div>
 
@@ -145,6 +194,7 @@
 <!-- Overlay saat alarm berbunyi -->
 <div class="ringing" id="ringing">
   <h2>🕌 Murottal Sedang Berputar</h2>
+  <div class="qari-display" id="qariDisplay">🎙️ Qori: -</div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   <div class="progress-text" id="progressText">Ayat 0 / 0</div>
   <div class="ayah-ref" id="ringingRef">-</div>
@@ -157,13 +207,38 @@
     <button class="btn-next" onclick="nextAyah()">⏭ Berikutnya</button>
   </div>
 
+  <div class="countdown-box" id="countdownBox">
+    <div class="finished-icon">✅</div>
+    <div class="countdown-text">Murottal selesai! Kembali ke dashboard dalam:</div>
+    <div class="countdown-number" id="countdownNumber">5</div>
+    <div style="font-size:0.85em;opacity:0.9;margin-bottom:10px;">detik</div>
+    <button class="btn-cancel" onclick="cancelAutoClose()">✋ Batalkan (Tetap di sini)</button>
+  </div>
+
   <div class="ringing-buttons">
     <button class="snooze-btn" onclick="snooze()">😴 Tunda 9 Menit</button>
     <button class="stop-btn" onclick="stopAlarm()">✓ Matikan</button>
   </div>
 </div>
 
+<!-- Volume indicator -->
+<div class="volume-indicator" id="volumeIndicator">🔊 Volume: 100%</div>
+
 <script>
+  // ===== DATA QORI =====
+  const QARI_LIST = [
+    { id: 'ar.alafasy', name: 'Syekh Mishary Alafasy', flag: '🇰🇼' },
+    { id: 'ar.abdurrahmaansudais', name: 'Syekh Abdurrahman As-Sudais', flag: '🇸🇦' },
+    { id: 'ar.husary', name: 'Syekh Mahmoud Al-Husary', flag: '🇪🇬' },
+    { id: 'ar.minshawi', name: 'Syekh Muhammad Al-Minshawi', flag: '🇪🇬' },
+    { id: 'ar.muhammadayyoub', name: 'Syekh Muhammad Ayyoub', flag: '🇸🇦' },
+    { id: 'ar.shaatree', name: 'Syekh Abu Bakr Al-Shatri', flag: '🇸🇦' },
+    { id: 'ar.ahmedajamy', name: 'Syekh Ahmed Al-Ajamy', flag: '🇸🇦' },
+    { id: 'ar.abdulbasitmurattal', name: 'Syekh Abdul Basit (Murattal)', flag: '🇸🇦' },
+    { id: 'ar.maaboralquran', name: 'Syekh Maher Al Muaiqly', flag: '🇸🇦' },
+    { id: 'ar.hanirifai', name: 'Syekh Hani Ar-Rifai', flag: '🇸🇦' }
+  ];
+
   // ===== DATA PRESET =====
   const PRESETS = [
     { name: "Al-Fatihah:1", ayah: 1 },
@@ -186,15 +261,36 @@
   let alarms = JSON.parse(localStorage.getItem('alarms_quran') || '[]');
   let selectedAyah = null;
 
-  // ===== STATE ALARM SEDANG BERPUTAR =====
-  let ayahQueue = [];          // Array data ayat yang akan diputar
-  let currentAyahIndex = 0;    // Index ayat yang sedang diputar
-  let currentAudio = null;     // Audio element saat ini
+  // ===== STATE ALARM =====
+  let ayahQueue = [];
+  let currentAyahIndex = 0;
+  let currentAudio = null;
   let isPaused = false;
   let isRinging = false;
+  let currentQari = 'ar.alafasy';
+
+  // ===== STATE AUTO-CLOSE =====
+  let countdownInterval = null;
+  let countdownValue = 5;
+  const AUTO_CLOSE_DELAY = 5;
+
+  // ===== STATE FADE OUT =====
+  let fadeInterval = null;
+  const FADE_DURATION = 5; // detik fade out di ayat terakhir
+  const volumeIndicator = document.getElementById('volumeIndicator');
 
   // ===== INIT =====
   function init() {
+    // Populate qori dropdown
+    const qariSel = document.getElementById('qariSelect');
+    QARI_LIST.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = `${q.flag} ${q.name}`;
+      qariSel.appendChild(opt);
+    });
+
+    // Populate juz dropdown
     const juzSel = document.getElementById('juzSelect');
     for (let i = 1; i <= 30; i++) {
       const start = JUZ_RANGES[i-1];
@@ -209,6 +305,7 @@
       if (j) document.getElementById('ayahNumber').value = JUZ_RANGES[j-1];
     };
 
+    // Populate presets
     const presetList = document.getElementById('presetList');
     PRESETS.forEach(p => {
       const btn = document.createElement('button');
@@ -236,9 +333,9 @@
     checkAlarms(now);
   }
 
-  // ===== FETCH 1 AYAT =====
-  async function fetchAyah(ayahNumber) {
-    const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,ar.alafasy`;
+  // ===== FETCH 1 AYAT (dengan qori pilihan) =====
+  async function fetchAyah(ayahNumber, qariId = 'ar.alafasy') {
+    const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,${qariId}`;
     try {
       const res = await fetch(url);
       const data = await res.json();
@@ -261,20 +358,19 @@
     }
   }
 
-  // ===== FETCH BATCH AYAT (untuk antrian) =====
-  async function fetchAyahBatch(startNumber, count) {
+  // ===== FETCH BATCH AYAT =====
+  async function fetchAyahBatch(startNumber, count, qariId) {
     const result = [];
-    const batchSize = 5; // fetch 5 per batch agar tidak berat
+    const batchSize = 5;
     for (let i = 0; i < count; i += batchSize) {
       const batch = [];
       for (let j = 0; j < batchSize && (i + j) < count; j++) {
         const num = startNumber + i + j;
-        if (num > 6236) break; // batas Al-Quran
-        batch.push(fetchAyah(num));
+        if (num > 6236) break;
+        batch.push(fetchAyah(num, qariId));
       }
       const results = await Promise.all(batch);
       results.forEach(r => { if (r) result.push(r); });
-      // Update UI progress saat loading
       if (isRinging) {
         document.getElementById('progressText').textContent =
           `Memuat... ${result.length} / ${count} ayat`;
@@ -286,22 +382,25 @@
   // ===== PREVIEW AYAT AWAL =====
   async function previewAyah() {
     const num = parseInt(document.getElementById('ayahNumber').value);
+    const qariId = document.getElementById('qariSelect').value;
     if (!num || num < 1 || num > 6236) {
       document.getElementById('status').textContent = '❌ Nomor ayat harus 1-6236';
       return;
     }
     document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat ayat...</div>';
-    const data = await fetchAyah(num);
+    const data = await fetchAyah(num, qariId);
     if (!data) {
       document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat. Cek internet.</div>';
       return;
     }
-    selectedAyah = { number: num, ...data };
+    selectedAyah = { number: num, qari: qariId, ...data };
     const count = parseInt(document.getElementById('ayahCount').value) || 40;
     const endNum = Math.min(num + count - 1, 6236);
+    const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
     document.getElementById('previewBox').innerHTML = `
       <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;">
         <div style="font-size:0.85em;opacity:0.8;">${data.ref} (Juz ${data.juz})</div>
+        <div style="font-size:0.8em;color:#ffeb3b;margin:5px 0;">🎙️ ${qariName}</div>
         <div class="arabic" style="font-size:1.4em;margin:10px 0;">${data.arab}</div>
         <div class="translation" style="font-size:0.9em;">"${data.translation}"</div>
         <div style="font-size:0.85em;opacity:0.9;margin:8px 0;">
@@ -310,7 +409,7 @@
         <button class="btn-test" onclick="testAudio('${data.audioUrl}')">🔊 Test Suara</button>
       </div>
     `;
-    document.getElementById('status').textContent = `✅ Ayat ${num} siap (akan putar ${count} ayat)`;
+    document.getElementById('status').textContent = `✅ Ayat ${num} siap dengan ${qariName}`;
   }
 
   function testAudio(url) {
@@ -325,16 +424,18 @@
     const label = document.getElementById('alarmLabel').value || 'Alarm';
     const num = parseInt(document.getElementById('ayahNumber').value);
     const count = parseInt(document.getElementById('ayahCount').value) || 40;
+    const qariId = document.getElementById('qariSelect').value;
+    const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
 
     if (!time) return alert('⏰ Pilih waktu!');
     if (!num || num < 1 || num > 6236) return alert('📖 Pilih nomor ayat (1-6236)!');
     if (count < 1 || count > 100) return alert('🔁 Jumlah ayat harus 1-100!');
 
-    if (!selectedAyah || selectedAyah.number !== num) {
+    if (!selectedAyah || selectedAyah.number !== num || selectedAyah.qari !== qariId) {
       document.getElementById('status').textContent = '⏳ Memuat data ayat...';
-      const data = await fetchAyah(num);
+      const data = await fetchAyah(num, qariId);
       if (!data) return alert('❌ Gagal memuat ayat.');
-      selectedAyah = { number: num, ...data };
+      selectedAyah = { number: num, qari: qariId, ...data };
     }
 
     alarms.push({
@@ -343,12 +444,14 @@
       startAyah: num,
       count: count,
       startRef: selectedAyah.ref,
+      qari: qariId,
+      qariName: qariName,
       active: true,
       triggered: false
     });
     saveAlarms();
     renderAlarms();
-    document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan (${count} ayat dari ${selectedAyah.ref})`;
+    document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan (${qariName})`;
     document.getElementById('alarmTime').value = '';
     document.getElementById('alarmLabel').value = '';
     document.getElementById('ayahNumber').value = '';
@@ -385,6 +488,7 @@
           <div class="time">${a.time} ${a.active?'🔔':'🔕'}</div>
           <div style="font-weight:bold;">${a.label}</div>
           <div class="detail">📖 ${a.count} ayat mulai dari ${a.startRef}</div>
+          <span class="qari-tag">🎙️ ${a.qariName || 'Alafasy'}</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
           <button class="btn-small btn-toggle ${a.active?'on':'off'}" onclick="toggleAlarm(${a.id})">${a.active?'ON':'OFF'}</button>
@@ -414,6 +518,7 @@
     currentAyahIndex = 0;
     ayahQueue = [];
     isPaused = false;
+    currentQari = alarm.qari || 'ar.alafasy';
 
     document.getElementById('ringing').classList.add('active');
     document.getElementById('progressText').textContent = `Memuat ${alarm.count} ayat...`;
@@ -422,61 +527,54 @@
     document.getElementById('ringingTranslation').textContent = '';
     document.getElementById('ringingRef').textContent = '';
     document.getElementById('pauseBtn').textContent = '⏸ Pause';
+    document.getElementById('qariDisplay').textContent = `🎙️ ${alarm.qariName || 'Syekh Alafasy'}`;
+    hideCountdown();
 
-    // Fetch semua ayat dalam antrian
-    ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.count);
+    ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.count, currentQari);
 
     if (ayahQueue.length === 0) {
       document.getElementById('progressText').textContent = '❌ Gagal memuat ayat';
       return;
     }
 
-    // Notifikasi
     if (Notification.permission === "granted") {
       new Notification("🕌 " + alarm.label, {
-        body: `Murottal ${ayahQueue.length} ayat dimulai`,
+        body: `${ayahQueue.length} ayat • ${alarm.qariName}`,
         requireInteraction: true, vibrate: [500, 500, 500]
       });
     }
 
-    // Wake lock
     if ('wakeLock' in navigator) {
       navigator.wakeLock.request('screen').catch(()=>{});
     }
 
-    // Mulai putar ayat pertama
     playCurrentAyah();
   }
 
   // ===== PUTAR AYAT SAAT INI =====
   function playCurrentAyah() {
     if (!isRinging || currentAyahIndex >= ayahQueue.length) {
-      // Selesai semua
-      if (isRinging) {
-        document.getElementById('progressText').textContent = `✅ Selesai (${ayahQueue.length} ayat)`;
-        document.getElementById('ringingArabic').textContent = '🤲 Selesai murottal';
-        document.getElementById('ringingTranslation').textContent = 'Silakan matikan atau tunda alarm';
-        document.getElementById('progressFill').style.width = '100%';
-      }
+      onMurottalFinished();
       return;
     }
 
     const ayah = ayahQueue[currentAyahIndex];
     const total = ayahQueue.length;
     const progress = ((currentAyahIndex + 1) / total) * 100;
+    const isLastAyah = (currentAyahIndex === total - 1);
 
-    // Update UI
     document.getElementById('progressFill').style.width = progress + '%';
-    document.getElementById('progressText').textContent = `Ayat ${currentAyahIndex + 1} / ${total}`;
+    document.getElementById('progressText').textContent = `Ayat ${currentAyahIndex + 1} / ${total}${isLastAyah ? ' (Terakhir 🔉)' : ''}`;
     document.getElementById('ringingRef').textContent = `${ayah.ref} • Juz ${ayah.juz}`;
     document.getElementById('ringingArabic').textContent = ayah.arab;
     document.getElementById('ringingTranslation').textContent = `"${ayah.translation}"`;
 
-    // Putar audio
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
     }
+    stopFadeOut(); // stop fade sebelumnya
+
     currentAudio = new Audio(ayah.audioUrl);
     currentAudio.volume = 1.0;
     currentAudio.onended = () => {
@@ -485,21 +583,106 @@
         playCurrentAyah();
       }
     };
-    currentAudio.onerror = (e) => {
-      console.error('Audio error, skip ke ayat berikutnya');
+    currentAudio.onerror = () => {
+      console.error('Audio error, skip');
       currentAyahIndex++;
       playCurrentAyah();
     };
 
     if (!isPaused) {
-      currentAudio.play().catch(e => {
-        console.log('Autoplay gagal:', e);
-      });
+      currentAudio.play().then(() => {
+        // ===== JIKA AYAT TERAKHIR → AKTIFKAN FADE OUT =====
+        if (isLastAyah) {
+          startFadeOut(currentAudio);
+        }
+      }).catch(e => console.log('Autoplay gagal:', e));
+    }
+  }
+
+  // ===== FUNGSI FADE OUT (BARU) =====
+  function startFadeOut(audio) {
+    stopFadeOut();
+    volumeIndicator.classList.add('active');
+
+    fadeInterval = setInterval(() => {
+      if (!audio || audio.paused || audio.ended) {
+        stopFadeOut();
+        return;
+      }
+      if (!audio.duration || isNaN(audio.duration)) return;
+
+      const remaining = audio.duration - audio.currentTime;
+      if (remaining <= FADE_DURATION) {
+        const newVolume = Math.max(0, remaining / FADE_DURATION);
+        audio.volume = newVolume;
+        volumeIndicator.textContent = `🔉 Fade out: ${Math.round(newVolume * 100)}%`;
+      } else {
+        volumeIndicator.textContent = `🔊 Volume: 100%`;
+      }
+    }, 100);
+  }
+
+  function stopFadeOut() {
+    if (fadeInterval) {
+      clearInterval(fadeInterval);
+      fadeInterval = null;
+    }
+    volumeIndicator.classList.remove('active');
+  }
+
+  // ===== MUROTTAL SELESAI =====
+  function onMurottalFinished() {
+    stopFadeOut();
+    document.getElementById('progressText').textContent = `✅ Selesai (${ayahQueue.length} ayat)`;
+    document.getElementById('ringingArabic').textContent = '🤲';
+    document.getElementById('ringingTranslation').textContent = 'Selesai murottal. Alhamdulillah.';
+    document.getElementById('progressFill').style.width = '100%';
+    startAutoCloseCountdown();
+  }
+
+  // ===== COUNTDOWN AUTO-CLOSE =====
+  function startAutoCloseCountdown() {
+    countdownValue = AUTO_CLOSE_DELAY;
+    document.getElementById('countdownBox').classList.add('active');
+    document.getElementById('countdownNumber').textContent = countdownValue;
+
+    countdownInterval = setInterval(() => {
+      countdownValue--;
+      document.getElementById('countdownNumber').textContent = countdownValue;
+      if (countdownValue <= 0) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+        stopAlarm();
+      }
+    }, 1000);
+  }
+
+  function cancelAutoClose() {
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
+    }
+    hideCountdown();
+    document.getElementById('progressText').textContent =
+      `⏸ Auto-close dibatalkan. (${ayahQueue.length} ayat selesai)`;
+    document.getElementById('ringingArabic').textContent = '🤲';
+    document.getElementById('ringingTranslation').textContent =
+      'Anda membatalkan auto-close. Silakan matikan manual jika sudah siap.';
+  }
+
+  function hideCountdown() {
+    document.getElementById('countdownBox').classList.remove('active');
+    if (countdownInterval) {
+      clearInterval(countdownInterval);
+      countdownInterval = null;
     }
   }
 
   // ===== KONTROL NAVIGASI =====
   function nextAyah() {
+    hideCountdown();
+    stopFadeOut();
+    if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex < ayahQueue.length - 1) {
       currentAyahIndex++;
       isPaused = false;
@@ -509,6 +692,9 @@
   }
 
   function prevAyah() {
+    hideCountdown();
+    stopFadeOut();
+    if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex > 0) {
       currentAyahIndex--;
       isPaused = false;
@@ -519,13 +705,19 @@
 
   function togglePause() {
     if (!currentAudio) return;
+    hideCountdown();
     isPaused = !isPaused;
     if (isPaused) {
       currentAudio.pause();
+      stopFadeOut(); // pause juga fade out
       document.getElementById('pauseBtn').textContent = '▶ Play';
     } else {
       currentAudio.play().catch(()=>{});
       document.getElementById('pauseBtn').textContent = '⏸ Pause';
+      // Kalau ayat terakhir, lanjutkan fade out
+      if (currentAyahIndex === ayahQueue.length - 1) {
+        startFadeOut(currentAudio);
+      }
     }
   }
 
@@ -533,6 +725,8 @@
   function stopAlarm() {
     isRinging = false;
     isPaused = false;
+    stopFadeOut();
+    hideCountdown();
     if (currentAudio) {
       currentAudio.pause();
       currentAudio = null;
@@ -555,6 +749,8 @@
       startAyah: lastAlarm.startAyah,
       count: lastAlarm.count,
       startRef: lastAlarm.startRef,
+      qari: lastAlarm.qari,
+      qariName: lastAlarm.qariName,
       active: true,
       triggered: false
     });
