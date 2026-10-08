@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🕌 Alarm Murottal Al-Quran</title>
+<title>🕌 Alarm Murottal & Sholat</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0d5c3d">
 <style>
@@ -17,6 +17,24 @@
   h1 { font-size: 1.6em; text-align: center; margin-bottom: 5px; }
   .subtitle { opacity: 0.8; font-size: 0.9em; margin-bottom: 15px; text-align: center; }
   .clock { font-size: 3em; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
+
+  /* Tab navigation */
+  .tabs {
+    display: flex; gap: 5px; margin-bottom: 15px;
+    background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px;
+    width: 100%; max-width: 500px;
+  }
+  .tab {
+    flex: 1; padding: 10px; text-align: center;
+    border-radius: 8px; cursor: pointer;
+    font-weight: bold; font-size: 0.9em;
+    transition: 0.2s;
+  }
+  .tab.active { background: #ff9800; color: #fff; }
+  .tab:not(.active) { background: transparent; color: rgba(255,255,255,0.7); }
+  .tab-content { display: none; width: 100%; max-width: 500px; }
+  .tab-content.active { display: block; }
+
   .card {
     background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
     border-radius: 15px; padding: 15px; margin: 8px 0;
@@ -28,9 +46,7 @@
     width: 100%; padding: 10px; font-size: 1em;
     border: none; border-radius: 8px; background: #fff; color: #333; margin-bottom: 8px;
   }
-  .range-group {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-  }
+  .range-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .range-info {
     background: rgba(255,235,59,0.15); border: 1px solid rgba(255,235,59,0.3);
     border-radius: 8px; padding: 8px 12px; margin: 8px 0;
@@ -69,6 +85,77 @@
   .status { margin-top: 8px; font-size: 0.85em; color: #ffeb3b; }
   .loading { opacity: 0.7; font-style: italic; }
 
+  /* ===== PRAYER SCHEDULE CARD ===== */
+  .prayer-card {
+    background: linear-gradient(135deg, rgba(156,39,176,0.3), rgba(103,58,183,0.3));
+    border: 1px solid rgba(255,255,255,0.2);
+  }
+  .prayer-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .next-prayer-box {
+    background: rgba(255,235,59,0.2); border: 1px solid #ffeb3b;
+    border-radius: 12px; padding: 12px; margin: 10px 0; text-align: center;
+  }
+  .next-prayer-name { font-size: 1.2em; font-weight: bold; color: #ffeb3b; }
+  .next-prayer-time { font-size: 1.8em; font-weight: bold; margin: 5px 0; }
+  .next-prayer-countdown { font-size: 0.9em; opacity: 0.9; }
+  .next-prayer-alarm { font-size: 0.8em; color: #ff9800; margin-top: 3px; }
+
+  .prayer-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    margin: 10px 0;
+  }
+  .prayer-item {
+    background: rgba(255,255,255,0.1); padding: 10px;
+    border-radius: 8px; display: flex; justify-content: space-between;
+    align-items: center; font-size: 0.9em;
+  }
+  .prayer-item.next { background: rgba(255,235,59,0.25); border: 1px solid #ffeb3b; }
+  .prayer-item.passed { opacity: 0.5; }
+  .prayer-name { font-weight: bold; }
+  .prayer-time { font-size: 1.1em; font-weight: bold; }
+  .prayer-alarm-time { font-size: 0.75em; opacity: 0.8; }
+  .prayer-toggle {
+    width: 40px; height: 22px; border-radius: 11px;
+    background: #757575; position: relative; cursor: pointer;
+    transition: 0.2s;
+  }
+  .prayer-toggle.on { background: #4caf50; }
+  .prayer-toggle::after {
+    content: ''; position: absolute;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; top: 2px; left: 2px;
+    transition: 0.2s;
+  }
+  .prayer-toggle.on::after { left: 20px; }
+
+  .prayer-settings-btn {
+    background: rgba(255,255,255,0.15); padding: 8px 12px;
+    font-size: 0.85em; margin-top: 5px; width: 100%;
+  }
+
+  /* Modal */
+  .modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: none; justify-content: center; align-items: center;
+    z-index: 10001; padding: 15px;
+  }
+  .modal.active { display: flex; }
+  .modal-content {
+    background: linear-gradient(135deg, #0d5c3d, #1a8f5f);
+    border-radius: 15px; padding: 20px;
+    width: 100%; max-width: 450px; max-height: 90vh; overflow-y: auto;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 15px;
+  }
+  .modal-close {
+    background: #e53935; padding: 5px 12px; font-size: 0.9em;
+  }
+
   /* ===== OVERLAY ALARM ===== */
   .ringing {
     position: fixed; inset: 0;
@@ -94,10 +181,7 @@
     background: rgba(255,255,255,0.2); border-radius: 4px;
     margin: 10px 0; overflow: hidden;
   }
-  .progress-fill {
-    height: 100%; background: #ffeb3b;
-    transition: width 0.3s; width: 0%;
-  }
+  .progress-fill { height: 100%; background: #ffeb3b; transition: width 0.3s; width: 0%; }
   .progress-text { font-size: 0.9em; opacity: 0.9; margin-bottom: 10px; }
   .arabic {
     font-size: 1.8em; line-height: 1.8;
@@ -156,63 +240,119 @@
 </head>
 <body>
 
-<h1>🕌 Alarm Murottal Al-Quran</h1>
-<div class="subtitle">Pilih rentang ayat dalam juz • Max 40 ayat</div>
+<h1>🕌 Alarm Murottal & Sholat</h1>
+<div class="subtitle">Alarm manual + Alarm sholat otomatis</div>
 <div class="clock" id="clock">--:--:--</div>
 
-<!-- Form tambah alarm -->
-<div class="card">
-  <h3>➕ Tambah Alarm</h3>
+<!-- TAB NAVIGATION -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('prayer')">🕌 Sholat</div>
+  <div class="tab" onclick="switchTab('manual')">⏰ Manual</div>
+</div>
 
-  <label>⏰ Waktu:</label>
-  <input type="time" id="alarmTime">
-
-  <label>📝 Label (opsional):</label>
-  <input type="text" id="alarmLabel" placeholder="Contoh: murottal subuh">
-
-  <label>🎙️ Pilih Qori:</label>
-  <select id="qariSelect"></select>
-
-  <label>📖 Pilih Juz (1-30):</label>
-  <select id="juzSelect">
-    <option value="">-- Pilih Juz dulu --</option>
-  </select>
-
-  <div id="juzInfoBox" style="display:none;">
-    <label>🔢 Rentang Ayat (dalam juz ini):</label>
-    <div class="range-group">
-      <div>
-        <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Awal</div>
-        <input type="number" id="ayahStart" min="1" placeholder="Awal">
-      </div>
-      <div>
-        <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Akhir</div>
-        <input type="number" id="ayahEnd" min="1" placeholder="Akhir">
-      </div>
-    </div>
-    <div class="range-info" id="rangeInfo">
-      Pilih ayat awal & akhir
+<!-- ============ TAB: ALARM SHOLAT OTOMATIS ============ -->
+<div class="tab-content active" id="tab-prayer">
+  <div class="card prayer-card">
+    <div class="prayer-header">
+      <h3>🕌 Alarm Sholat Otomatis</h3>
+      <button class="btn-small" onclick="refreshPrayerSchedule()" style="margin:0;padding:6px 10px;">🔄</button>
     </div>
 
-    <label>🎵 Ayat Populer di Juz Ini:</label>
-    <div class="preset-list" id="presetList"></div>
+    <label>📍 Kota / Kabupaten:</label>
+    <select id="prayerCity">
+      <option value="">-- Pilih Kota --</option>
+    </select>
+    <input type="text" id="prayerCityCustom" placeholder="Atau ketik nama kota/kabupaten lain" style="display:none;">
+    <button onclick="toggleCustomCity()" style="background:#607d8b;font-size:0.85em;padding:6px 12px;margin-top:0;">🔍 Cari kota lain</button>
 
-    <button onclick="previewAyah()">👁️ Preview Rentang</button>
-    <button onclick="addAlarm()" id="btnAdd" disabled>✅ Tambah Alarm</button>
-    <div class="status" id="status">Pilih juz, lalu tentukan rentang ayat</div>
-    <div id="previewBox" style="margin-top:10px;"></div>
+    <label>⏰ Bunyikan berapa menit sebelum sholat:</label>
+    <input type="number" id="prayerMinutesBefore" min="1" max="60" value="15">
+
+    <button onclick="savePrayerSettings()">💾 Simpan & Aktifkan</button>
+    <div class="status" id="prayerStatus">Pilih kota untuk mulai</div>
+  </div>
+
+  <!-- Jadwal Hari Ini -->
+  <div class="card" id="scheduleCard" style="display:none;">
+    <h3>📅 Jadwal Hari Ini</h3>
+    <div class="next-prayer-box">
+      <div style="font-size:0.85em;opacity:0.8;">Sholat Berikutnya</div>
+      <div class="next-prayer-name" id="nextPrayerName">-</div>
+      <div class="next-prayer-time" id="nextPrayerTime">--:--</div>
+      <div class="next-prayer-countdown" id="nextPrayerCountdown">-</div>
+      <div class="next-prayer-alarm" id="nextPrayerAlarm">Alarm: --:--</div>
+    </div>
+
+    <div class="prayer-grid" id="prayerGrid"></div>
+
+    <button class="prayer-settings-btn" onclick="openPrayerSettingsModal()">⚙️ Atur Qori & Ayat per Waktu Sholat</button>
   </div>
 </div>
 
-<!-- Daftar alarm -->
-<div class="card">
-  <h3>📋 Daftar Alarm</h3>
-  <div id="alarmList"></div>
+<!-- ============ TAB: ALARM MANUAL ============ -->
+<div class="tab-content" id="tab-manual">
+  <div class="card">
+    <h3>➕ Tambah Alarm Manual</h3>
+
+    <label>⏰ Waktu:</label>
+    <input type="time" id="alarmTime">
+
+    <label>📝 Label (opsional):</label>
+    <input type="text" id="alarmLabel" placeholder="Contoh: murottal pagi">
+
+    <label>🎙️ Pilih Qori:</label>
+    <select id="qariSelect"></select>
+
+    <label>📖 Pilih Juz (1-30):</label>
+    <select id="juzSelect">
+      <option value="">-- Pilih Juz dulu --</option>
+    </select>
+
+    <div id="juzInfoBox" style="display:none;">
+      <label>🔢 Rentang Ayat (dalam juz ini):</label>
+      <div class="range-group">
+        <div>
+          <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Awal</div>
+          <input type="number" id="ayahStart" min="1" placeholder="Awal">
+        </div>
+        <div>
+          <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Akhir</div>
+          <input type="number" id="ayahEnd" min="1" placeholder="Akhir">
+        </div>
+      </div>
+      <div class="range-info" id="rangeInfo">Pilih ayat awal & akhir</div>
+
+      <label>🎵 Ayat Populer di Juz Ini:</label>
+      <div class="preset-list" id="presetList"></div>
+
+      <button onclick="previewAyah()">👁️ Preview Rentang</button>
+      <button onclick="addAlarm()" id="btnAdd" disabled>✅ Tambah Alarm</button>
+      <div class="status" id="status">Pilih juz, lalu tentukan rentang ayat</div>
+      <div id="previewBox" style="margin-top:10px;"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>📋 Daftar Alarm Manual</h3>
+    <div id="alarmList"></div>
+  </div>
 </div>
 
-<!-- Overlay alarm -->
+<!-- ============ MODAL: SETTINGS PER WAKTU SHOLAT ============ -->
+<div class="modal" id="prayerSettingsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>⚙️ Setting per Waktu Sholat</h3>
+      <button class="modal-close" onclick="closePrayerSettingsModal()">✕</button>
+    </div>
+    <div id="prayerSettingsBody"></div>
+    <button onclick="savePrayerPerSettings()" style="width:100%;margin-top:10px;">💾 Simpan Semua</button>
+  </div>
+</div>
+
+<!-- ============ OVERLAY ALARM ============ -->
 <div class="ringing" id="ringing">
-  <h2>🕌 Murottal Sedang Berputar</h2>
+  <h2 id="ringingTitle">🕌 Murottal Sedang Berputar</h2>
   <div class="qari-display" id="qariDisplay">🎙️ Qori: -</div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   <div class="progress-text" id="progressText">Ayat 0 / 0</div>
@@ -257,8 +397,50 @@
     { id: 'ar.hanirifai', name: 'Syekh Hani Ar-Rifai', flag: '🇸🇦' }
   ];
 
-  // ===== DATA JUZ (global number ayat) =====
-  // Index 0 = Juz 1, dst.
+  // ===== KOTA-KOTA BESAR DI INDONESIA (34 Ibu Kota Provinsi) =====
+  const PRAYER_CITIES = [
+    // Sumatera
+    { name: 'Banda Aceh', province: 'Aceh' },
+    { name: 'Medan', province: 'Sumatera Utara' },
+    { name: 'Padang', province: 'Sumatera Barat' },
+    { name: 'Pekanbaru', province: 'Riau' },
+    { name: 'Jambi', province: 'Jambi' },
+    { name: 'Palembang', province: 'Sumatera Selatan' },
+    { name: 'Bengkulu', province: 'Bengkulu' },
+    { name: 'Bandar Lampung', province: 'Lampung' },
+    { name: 'Pangkal Pinang', province: 'Kep. Bangka Belitung' },
+    // Jawa
+    { name: 'Jakarta', province: 'DKI Jakarta' },
+    { name: 'Bandung', province: 'Jawa Barat' },
+    { name: 'Semarang', province: 'Jawa Tengah' },
+    { name: 'Yogyakarta', province: 'DI Yogyakarta' },
+    { name: 'Surabaya', province: 'Jawa Timur' },
+    { name: 'Serang', province: 'Banten' },
+    // Kalimantan
+    { name: 'Pontianak', province: 'Kalimantan Barat' },
+    { name: 'Palangka Raya', province: 'Kalimantan Tengah' },
+    { name: 'Banjarmasin', province: 'Kalimantan Selatan' },
+    { name: 'Samarinda', province: 'Kalimantan Timur' },
+    { name: 'Tanjung Selor', province: 'Kalimantan Utara' },
+    // Sulawesi
+    { name: 'Manado', province: 'Sulawesi Utara' },
+    { name: 'Palu', province: 'Sulawesi Tengah' },
+    { name: 'Makassar', province: 'Sulawesi Selatan' },
+    { name: 'Kendari', province: 'Sulawesi Tenggara' },
+    { name: 'Gorontalo', province: 'Gorontalo' },
+    { name: 'Mamuju', province: 'Sulawesi Barat' },
+    // Bali & Nusa Tenggara
+    { name: 'Denpasar', province: 'Bali' },
+    { name: 'Mataram', province: 'Nusa Tenggara Barat' },
+    { name: 'Kupang', province: 'Nusa Tenggara Timur' },
+    // Maluku & Papua
+    { name: 'Ambon', province: 'Maluku' },
+    { name: 'Sofifi', province: 'Maluku Utara' },
+    { name: 'Jayapura', province: 'Papua' },
+    { name: 'Manokwari', province: 'Papua Barat' }
+  ];
+
+  // ===== DATA JUZ =====
   const JUZ_RANGES = [
     { juz: 1,  start: 1,    end: 148,   name: 'Al-Fatihah - Al-Baqarah:141' },
     { juz: 2,  start: 149,  end: 252,   name: 'Al-Baqarah:142 - Al-Baqarah:252' },
@@ -293,24 +475,43 @@
   ];
 
   const MAX_AYAH_COUNT = 40;
+  const PRAYER_NAMES = {
+    Fajr: 'Subuh', Dhuhr: 'Dzuhur', Asr: 'Ashar',
+    Maghrib: 'Maghrib', Isha: 'Isya'
+  };
 
+  // ===== STATE =====
   let alarms = JSON.parse(localStorage.getItem('alarms_quran') || '[]');
-  let selectedRange = null;
+  let selectedAyah = null;
   let currentJuz = null;
 
-  // ===== STATE ALARM =====
+  // Prayer state
+  let prayerSettings = JSON.parse(localStorage.getItem('prayerSettings') || 'null') || {
+    enabled: false,
+    city: '',
+    country: 'Indonesia',
+    minutesBefore: 15,
+    prayers: {
+      Fajr:   { enabled: true, qari: 'ar.alafasy', startAyah: 1, endAyah: 7 },
+      Dhuhr:  { enabled: true, qari: 'ar.alafasy', startAyah: 255, endAyah: 255 },
+      Asr:    { enabled: true, qari: 'ar.alafasy', startAyah: 1, endAyah: 10 },
+      Maghrib:{ enabled: true, qari: 'ar.alafasy', startAyah: 6227, endAyah: 6236 },
+      Isha:   { enabled: true, qari: 'ar.alafasy', startAyah: 3262, endAyah: 3271 }
+    },
+    todaySchedule: null,
+    lastFetchDate: null,
+    triggeredToday: {}
+  };
+
+  // Alarm ringing state
   let ayahQueue = [];
   let currentAyahIndex = 0;
   let currentAudio = null;
   let isPaused = false;
   let isRinging = false;
-
-  // ===== STATE AUTO-CLOSE =====
   let countdownInterval = null;
   let countdownValue = 5;
   const AUTO_CLOSE_DELAY = 5;
-
-  // ===== STATE FADE OUT =====
   let fadeInterval = null;
   const FADE_DURATION = 5;
   const volumeIndicator = document.getElementById('volumeIndicator');
@@ -336,9 +537,32 @@
     });
     juzSel.onchange = onJuzChange;
 
-    // Event untuk input rentang
     document.getElementById('ayahStart').oninput = updateRangeInfo;
     document.getElementById('ayahEnd').oninput = updateRangeInfo;
+
+    // Populate kota sholat
+    const citySel = document.getElementById('prayerCity');
+    PRAYER_CITIES.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.name;
+      opt.textContent = `${c.name} (${c.province})`;
+      citySel.appendChild(opt);
+    });
+
+    // Load saved prayer settings
+    if (prayerSettings.city) {
+      const citySel2 = document.getElementById('prayerCity');
+      const match = PRAYER_CITIES.find(c => c.name === prayerSettings.city);
+      if (match) {
+        citySel2.value = prayerSettings.city;
+      } else {
+        // Kota custom
+        citySel2.value = '';
+        document.getElementById('prayerCityCustom').value = prayerSettings.city;
+        document.getElementById('prayerCityCustom').style.display = 'block';
+      }
+    }
+    document.getElementById('prayerMinutesBefore').value = prayerSettings.minutesBefore || 15;
 
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
@@ -347,156 +571,321 @@
     updateClock();
     setInterval(updateClock, 1000);
     renderAlarms();
+    renderPrayerSchedule();
+
+    // Fetch jadwal sholat jika ada kota
+    if (prayerSettings.city) {
+      refreshPrayerSchedule();
+    }
   }
 
-  // ===== SAAT JUZ DIPILIH =====
-  function onJuzChange() {
-    const juzNum = parseInt(document.getElementById('juzSelect').value);
-    if (!juzNum) {
-      document.getElementById('juzInfoBox').style.display = 'none';
-      currentJuz = null;
-      return;
-    }
-    currentJuz = JUZ_RANGES.find(j => j.juz === juzNum);
-    document.getElementById('juzInfoBox').style.display = 'block';
-
-    // Set min/max input ayat
-    const startInput = document.getElementById('ayahStart');
-    const endInput = document.getElementById('ayahEnd');
-    startInput.min = currentJuz.start;
-    startInput.max = currentJuz.end;
-    startInput.value = currentJuz.start;
-    endInput.min = currentJuz.start;
-    endInput.max = currentJuz.end;
-    endInput.value = Math.min(currentJuz.start + MAX_AYAH_COUNT - 1, currentJuz.end);
-
-    // Populate preset untuk juz ini
-    populatePresetsForJuz(currentJuz);
-
-    updateRangeInfo();
-    document.getElementById('previewBox').innerHTML = '';
-    selectedRange = null;
+  // ===== TAB SWITCHING =====
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + tab).classList.add('active');
   }
 
-  // ===== PRESET AYAT POPULER PER JUZ =====
-  function populatePresetsForJuz(juz) {
-    const presetList = document.getElementById('presetList');
-    presetList.innerHTML = '';
-
-    // Generate preset: ayat pertama juz, dan beberapa rentang menarik
-    const presets = [];
-
-    // 1. Awal juz
-    presets.push({
-      name: `Awal Juz (${juz.start})`,
-      start: juz.start,
-      end: Math.min(juz.start + 9, juz.end)
-    });
-
-    // 2. Tengah juz (kalau cukup panjang)
-    if (juz.end - juz.start >= 20) {
-      const mid = Math.floor((juz.start + juz.end) / 2);
-      presets.push({
-        name: `Tengah Juz (${mid})`,
-        start: mid,
-        end: Math.min(mid + 9, juz.end)
-      });
-    }
-
-    // 3. Akhir juz
-    if (juz.end - juz.start >= 10) {
-      presets.push({
-        name: `Akhir Juz (${juz.end - 9}-${juz.end})`,
-        start: Math.max(juz.start, juz.end - 9),
-        end: juz.end
-      });
-    }
-
-    // 4. Full juz (kalau <= 40 ayat)
-    if (juz.end - juz.start + 1 <= MAX_AYAH_COUNT) {
-      presets.push({
-        name: `Full Juz (${juz.end - juz.start + 1} ayat)`,
-        start: juz.start,
-        end: juz.end
-      });
-    }
-
-    // 5. 40 ayat dari awal (kalau juz panjang)
-    if (juz.end - juz.start + 1 > MAX_AYAH_COUNT) {
-      presets.push({
-        name: `40 Ayat Pertama`,
-        start: juz.start,
-        end: juz.start + MAX_AYAH_COUNT - 1
-      });
-    }
-
-    presets.forEach(p => {
-      const btn = document.createElement('button');
-      btn.className = 'btn-preset';
-      btn.textContent = p.name;
-      btn.onclick = () => {
-        document.getElementById('ayahStart').value = p.start;
-        document.getElementById('ayahEnd').value = p.end;
-        updateRangeInfo();
-      };
-      presetList.appendChild(btn);
-    });
+  // ===== CUSTOM CITY TOGGLE =====
+  function toggleCustomCity() {
+    const custom = document.getElementById('prayerCityCustom');
+    custom.style.display = custom.style.display === 'none' ? 'block' : 'none';
   }
 
-  // ===== UPDATE INFO RENTANG =====
-  function updateRangeInfo() {
-    const infoBox = document.getElementById('rangeInfo');
-    const btnAdd = document.getElementById('btnAdd');
-    const startVal = parseInt(document.getElementById('ayahStart').value);
-    const endVal = parseInt(document.getElementById('ayahEnd').value);
-
-    if (!currentJuz || isNaN(startVal) || isNaN(endVal)) {
-      infoBox.className = 'range-info';
-      infoBox.textContent = 'Isi ayat awal & akhir';
-      btnAdd.disabled = true;
-      return;
-    }
-
-    // Validasi
-    if (startVal < currentJuz.start || startVal > currentJuz.end) {
-      infoBox.className = 'range-info error';
-      infoBox.textContent = `❌ Ayat awal harus antara ${currentJuz.start}-${currentJuz.end}`;
-      btnAdd.disabled = true;
-      return;
-    }
-    if (endVal < currentJuz.start || endVal > currentJuz.end) {
-      infoBox.className = 'range-info error';
-      infoBox.textContent = `❌ Ayat akhir harus antara ${currentJuz.start}-${currentJuz.end}`;
-      btnAdd.disabled = true;
-      return;
-    }
-    if (endVal < startVal) {
-      infoBox.className = 'range-info error';
-      infoBox.textContent = '❌ Ayat akhir harus >= ayat awal';
-      btnAdd.disabled = true;
-      return;
-    }
-
-    const count = endVal - startVal + 1;
-    if (count > MAX_AYAH_COUNT) {
-      infoBox.className = 'range-info error';
-      infoBox.textContent = `❌ Max ${MAX_AYAH_COUNT} ayat. Terpilih: ${count} ayat. Silakan persempit rentang.`;
-      btnAdd.disabled = true;
-      return;
-    }
-
-    infoBox.className = 'range-info';
-    infoBox.innerHTML = `✅ Juz ${currentJuz.juz} • Ayat <b>${startVal} - ${endVal}</b> • Total: <b>${count} ayat</b>`;
-    btnAdd.disabled = false;
+  function getSelectedCity() {
+    const fromDropdown = document.getElementById('prayerCity').value;
+    const custom = document.getElementById('prayerCityCustom').value.trim();
+    return custom || fromDropdown;
   }
 
+  // ===== CLOCK & CHECK =====
   function updateClock() {
     const now = new Date();
     document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
     checkAlarms(now);
+    checkPrayerAlarms(now);
+    updateNextPrayerCountdown(now);
+
+    // Auto-refresh jadwal sholat setiap tengah malam
+    const today = now.toISOString().slice(0,10);
+    if (prayerSettings.lastFetchDate !== today && prayerSettings.city) {
+      refreshPrayerSchedule();
+    }
   }
 
-  // ===== FETCH 1 AYAT =====
+  // ===== FETCH JADWAL SHOLAT =====
+  async function refreshPrayerSchedule() {
+    const city = getSelectedCity();
+    if (!city) {
+      document.getElementById('prayerStatus').textContent = '❌ Pilih kota dulu';
+      return;
+    }
+
+    document.getElementById('prayerStatus').textContent = '⏳ Mengambil jadwal sholat...';
+    const now = new Date();
+    const dateStr = `${String(now.getDate()).padStart(2,'0')}-${String(now.getMonth()+1).padStart(2,'0')}-${now.getFullYear()}`;
+
+    try {
+      const url = `https://api.aladhan.com/v1/timingsByCity/${dateStr}?city=${encodeURIComponent(city)}&country=Indonesia&method=20`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.code !== 200) throw new Error('API error');
+
+      const timings = data.data.timings;
+      prayerSettings.todaySchedule = {
+        date: dateStr,
+        Fajr: timings.Fajr,
+        Dhuhr: timings.Dhuhr,
+        Asr: timings.Asr,
+        Maghrib: timings.Maghrib,
+        Isha: timings.Isha
+      };
+      prayerSettings.lastFetchDate = now.toISOString().slice(0,10);
+      prayerSettings.triggeredToday = {}; // reset trigger hari ini
+      localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
+
+      document.getElementById('prayerStatus').textContent = `✅ Jadwal berhasil dimuat untuk ${city}`;
+      document.getElementById('scheduleCard').style.display = 'block';
+      renderPrayerSchedule();
+    } catch (e) {
+      console.error('Gagal fetch jadwal:', e);
+      document.getElementById('prayerStatus').textContent = '❌ Gagal memuat jadwal. Cek koneksi/nama kota.';
+    }
+  }
+
+  // ===== SAVE PRAYER SETTINGS =====
+  function savePrayerSettings() {
+    const city = getSelectedCity();
+    if (!city) {
+      alert('❌ Pilih atau ketik nama kota!');
+      return;
+    }
+    const minutesBefore = parseInt(document.getElementById('prayerMinutesBefore').value) || 15;
+
+    prayerSettings.enabled = true;
+    prayerSettings.city = city;
+    prayerSettings.minutesBefore = minutesBefore;
+    localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
+
+    refreshPrayerSchedule();
+  }
+
+  // ===== RENDER JADWAL SHOLAT =====
+  function renderPrayerSchedule() {
+    if (!prayerSettings.todaySchedule) return;
+
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const grid = document.getElementById('prayerGrid');
+    grid.innerHTML = '';
+
+    let nextPrayer = null;
+    let nextPrayerTime = null;
+
+    Object.keys(PRAYER_NAMES).forEach(key => {
+      const timeStr = prayerSettings.todaySchedule[key];
+      const [h, m] = timeStr.split(':').map(Number);
+      const prayerMinutes = h * 60 + m;
+      const isPassed = prayerMinutes <= currentTime;
+      const isNext = !isPassed && !nextPrayer;
+
+      if (isNext) {
+        nextPrayer = key;
+        nextPrayerTime = prayerMinutes;
+      }
+
+      const alarmMinutes = prayerMinutes - (prayerSettings.minutesBefore || 15);
+      const alarmH = Math.floor(alarmMinutes / 60);
+      const alarmM = alarmMinutes % 60;
+      const alarmTimeStr = `${String(alarmH).padStart(2,'0')}:${String(alarmM).padStart(2,'0')}`;
+
+      const item = document.createElement('div');
+      item.className = 'prayer-item' + (isNext ? ' next' : '') + (isPassed ? ' passed' : '');
+      item.innerHTML = `
+        <div>
+          <div class="prayer-name">${PRAYER_NAMES[key]} ${isNext?'⏭':''}</div>
+          <div class="prayer-time">${timeStr}</div>
+          <div class="prayer-alarm-time">🔔 Alarm: ${alarmTimeStr}</div>
+        </div>
+        <div class="prayer-toggle ${prayerSettings.prayers[key].enabled?'on':''}"
+             onclick="togglePrayer('${key}')"></div>
+      `;
+      grid.appendChild(item);
+    });
+
+    // Update next prayer box
+    if (nextPrayer) {
+      document.getElementById('nextPrayerName').textContent = PRAYER_NAMES[nextPrayer];
+      document.getElementById('nextPrayerTime').textContent = prayerSettings.todaySchedule[nextPrayer];
+      const alarmMinutes = nextPrayerTime - (prayerSettings.minutesBefore || 15);
+      const alarmH = Math.floor(alarmMinutes / 60);
+      const alarmM = alarmMinutes % 60;
+      document.getElementById('nextPrayerAlarm').textContent =
+        `🔔 Alarm: ${String(alarmH).padStart(2,'0')}:${String(alarmM).padStart(2,'0')}`;
+    } else {
+      document.getElementById('nextPrayerName').textContent = 'Semua sholat hari ini telah lewat';
+      document.getElementById('nextPrayerTime').textContent = '--:--';
+      document.getElementById('nextPrayerAlarm').textContent = '';
+      document.getElementById('nextPrayerCountdown').textContent = '';
+    }
+  }
+
+  function updateNextPrayerCountdown(now) {
+    if (!prayerSettings.todaySchedule) return;
+    const currentTime = now.getHours() * 60 + now.getMinutes() + now.getSeconds()/60;
+
+    let nextKey = null;
+    let nextMinutes = null;
+    Object.keys(PRAYER_NAMES).forEach(key => {
+      const timeStr = prayerSettings.todaySchedule[key];
+      const [h, m] = timeStr.split(':').map(Number);
+      const prayerMin = h * 60 + m;
+      if (prayerMin > currentTime && !nextKey) {
+        nextKey = key;
+        nextMinutes = prayerMin;
+      }
+    });
+
+    if (nextKey) {
+      const diffMinutes = nextMinutes - currentTime;
+      const h = Math.floor(diffMinutes);
+      const m = Math.floor((diffMinutes - h) * 60);
+      const s = Math.floor(((diffMinutes - h) * 60 - m) * 60);
+      document.getElementById('nextPrayerCountdown').textContent =
+        `⏳ ${h} jam ${m} menit ${s} detik lagi`;
+    }
+  }
+
+  function togglePrayer(key) {
+    prayerSettings.prayers[key].enabled = !prayerSettings.prayers[key].enabled;
+    localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
+    renderPrayerSchedule();
+  }
+
+  // ===== CEK ALARM SHOLAT =====
+  function checkPrayerAlarms(now) {
+    if (!prayerSettings.enabled || !prayerSettings.todaySchedule) return;
+    if (isRinging) return; // jangan trigger kalau sedang ada alarm aktif
+
+    const currentHM = now.toTimeString().slice(0,5);
+    const minutesBefore = prayerSettings.minutesBefore || 15;
+
+    Object.keys(PRAYER_NAMES).forEach(key => {
+      if (!prayerSettings.prayers[key].enabled) return;
+      if (prayerSettings.triggeredToday[key]) return;
+
+      const timeStr = prayerSettings.todaySchedule[key];
+      const [h, m] = timeStr.split(':').map(Number);
+      let alarmMinutes = h * 60 + m - minutesBefore;
+      if (alarmMinutes < 0) alarmMinutes += 24 * 60;
+      const alarmH = Math.floor(alarmMinutes / 60) % 24;
+      const alarmM = alarmMinutes % 60;
+      const alarmHM = `${String(alarmH).padStart(2,'0')}:${String(alarmM).padStart(2,'0')}`;
+
+      if (currentHM === alarmHM && now.getSeconds() === 0) {
+        prayerSettings.triggeredToday[key] = true;
+        localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
+        triggerPrayerAlarm(key);
+      }
+    });
+  }
+
+  // ===== PICU ALARM SHOLAT =====
+  async function triggerPrayerAlarm(prayerKey) {
+    const prayer = prayerSettings.prayers[prayerKey];
+    const prayerName = PRAYER_NAMES[prayerKey];
+    const prayerTime = prayerSettings.todaySchedule[prayerKey];
+
+    document.getElementById('ringingTitle').textContent = `🕌 Pengingat ${prayerName}`;
+    document.getElementById('qariDisplay').textContent =
+      `🎙️ ${QARI_LIST.find(q => q.id === prayer.qari)?.name || 'Alafasy'} • ${prayerTime}`;
+
+    // Fetch ayat
+    const count = prayer.endAyah - prayer.startAyah + 1;
+    ayahQueue = await fetchAyahBatch(prayer.startAyah, prayer.endAyah, prayer.qari);
+
+    if (ayahQueue.length === 0) {
+      alert('❌ Gagal memuat ayat untuk alarm sholat');
+      return;
+    }
+
+    isRinging = true;
+    currentAyahIndex = 0;
+    isPaused = false;
+
+    document.getElementById('ringing').classList.add('active');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('pauseBtn').textContent = '⏸ Pause';
+    hideCountdown();
+
+    if (Notification.permission === "granted") {
+      new Notification(`🕌 ${prayerName} - ${prayerTime}`, {
+        body: `${minutesBeforeText(prayerSettings.minutesBefore)} lagi • ${ayahQueue.length} ayat`,
+        requireInteraction: true, vibrate: [500, 500, 500]
+      });
+    }
+
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(()=>{});
+    }
+
+    playCurrentAyah();
+  }
+
+  function minutesBeforeText(m) {
+    return m === 1 ? '1 menit' : `${m} menit`;
+  }
+
+  // ===== MODAL SETTINGS PER SHOLAT =====
+  function openPrayerSettingsModal() {
+    const body = document.getElementById('prayerSettingsBody');
+    body.innerHTML = '';
+
+    Object.keys(PRAYER_NAMES).forEach(key => {
+      const prayer = prayerSettings.prayers[key];
+      const qariOptions = QARI_LIST.map(q =>
+        `<option value="${q.id}" ${prayer.qari===q.id?'selected':''}>${q.flag} ${q.name}</option>`
+      ).join('');
+
+      body.innerHTML += `
+        <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;margin-bottom:10px;">
+          <div style="font-weight:bold;margin-bottom:8px;">🕌 ${PRAYER_NAMES[key]}</div>
+          <label style="font-size:0.85em;">Qori:</label>
+          <select id="ps_qari_${key}" style="margin-bottom:5px;">${qariOptions}</select>
+          <label style="font-size:0.85em;">Rentang Ayat (global #):</label>
+          <div class="range-group">
+            <input type="number" id="ps_start_${key}" value="${prayer.startAyah}" min="1" max="6236">
+            <input type="number" id="ps_end_${key}" value="${prayer.endAyah}" min="1" max="6236">
+          </div>
+          <div style="font-size:0.8em;opacity:0.8;">Total: ${prayer.endAyah - prayer.startAyah + 1} ayat</div>
+        </div>
+      `;
+    });
+
+    document.getElementById('prayerSettingsModal').classList.add('active');
+  }
+
+  function closePrayerSettingsModal() {
+    document.getElementById('prayerSettingsModal').classList.remove('active');
+  }
+
+  function savePrayerPerSettings() {
+    Object.keys(PRAYER_NAMES).forEach(key => {
+      prayerSettings.prayers[key].qari = document.getElementById(`ps_qari_${key}`).value;
+      prayerSettings.prayers[key].startAyah = parseInt(document.getElementById(`ps_start_${key}`).value) || 1;
+      prayerSettings.prayers[key].endAyah = parseInt(document.getElementById(`ps_end_${key}`).value) || 1;
+      if (prayerSettings.prayers[key].endAyah < prayerSettings.prayers[key].startAyah) {
+        prayerSettings.prayers[key].endAyah = prayerSettings.prayers[key].startAyah;
+      }
+    });
+    localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
+    closePrayerSettingsModal();
+    alert('✅ Setting per waktu sholat disimpan');
+  }
+
+  // ===== FETCH AYAT (untuk alarm sholat & manual) =====
   async function fetchAyah(ayahNumber, qariId = 'ar.alafasy') {
     const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,${qariId}`;
     try {
@@ -521,7 +910,6 @@
     }
   }
 
-  // ===== FETCH BATCH AYAT =====
   async function fetchAyahBatch(startNumber, endNumber, qariId) {
     const result = [];
     const total = endNumber - startNumber + 1;
@@ -541,66 +929,134 @@
     return result;
   }
 
-  // ===== PREVIEW RENTANG =====
+  // ===== ALARM MANUAL FUNCTIONS =====
+  function onJuzChange() {
+    const juzNum = parseInt(document.getElementById('juzSelect').value);
+    if (!juzNum) {
+      document.getElementById('juzInfoBox').style.display = 'none';
+      currentJuz = null;
+      return;
+    }
+    currentJuz = JUZ_RANGES.find(j => j.juz === juzNum);
+    document.getElementById('juzInfoBox').style.display = 'block';
+
+    const startInput = document.getElementById('ayahStart');
+    const endInput = document.getElementById('ayahEnd');
+    startInput.min = currentJuz.start;
+    startInput.max = currentJuz.end;
+    startInput.value = currentJuz.start;
+    endInput.min = currentJuz.start;
+    endInput.max = currentJuz.end;
+    endInput.value = Math.min(currentJuz.start + MAX_AYAH_COUNT - 1, currentJuz.end);
+
+    populatePresetsForJuz(currentJuz);
+    updateRangeInfo();
+    document.getElementById('previewBox').innerHTML = '';
+    selectedAyah = null;
+  }
+
+  function populatePresetsForJuz(juz) {
+    const presetList = document.getElementById('presetList');
+    presetList.innerHTML = '';
+    const presets = [];
+    presets.push({ name: `Awal Juz (${juz.start})`, start: juz.start, end: Math.min(juz.start + 9, juz.end) });
+    if (juz.end - juz.start >= 20) {
+      const mid = Math.floor((juz.start + juz.end) / 2);
+      presets.push({ name: `Tengah Juz (${mid})`, start: mid, end: Math.min(mid + 9, juz.end) });
+    }
+    if (juz.end - juz.start >= 10) {
+      presets.push({ name: `Akhir Juz`, start: Math.max(juz.start, juz.end - 9), end: juz.end });
+    }
+    if (juz.end - juz.start + 1 <= MAX_AYAH_COUNT) {
+      presets.push({ name: `Full Juz`, start: juz.start, end: juz.end });
+    }
+    if (juz.end - juz.start + 1 > MAX_AYAH_COUNT) {
+      presets.push({ name: `40 Ayat Pertama`, start: juz.start, end: juz.start + MAX_AYAH_COUNT - 1 });
+    }
+    presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-preset';
+      btn.textContent = p.name;
+      btn.onclick = () => {
+        document.getElementById('ayahStart').value = p.start;
+        document.getElementById('ayahEnd').value = p.end;
+        updateRangeInfo();
+      };
+      presetList.appendChild(btn);
+    });
+  }
+
+  function updateRangeInfo() {
+    const infoBox = document.getElementById('rangeInfo');
+    const btnAdd = document.getElementById('btnAdd');
+    const startVal = parseInt(document.getElementById('ayahStart').value);
+    const endVal = parseInt(document.getElementById('ayahEnd').value);
+
+    if (!currentJuz || isNaN(startVal) || isNaN(endVal)) {
+      infoBox.className = 'range-info';
+      infoBox.textContent = 'Isi ayat awal & akhir';
+      btnAdd.disabled = true;
+      return;
+    }
+    if (startVal < currentJuz.start || startVal > currentJuz.end) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Ayat awal harus antara ${currentJuz.start}-${currentJuz.end}`;
+      btnAdd.disabled = true;
+      return;
+    }
+    if (endVal < currentJuz.start || endVal > currentJuz.end) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Ayat akhir harus antara ${currentJuz.start}-${currentJuz.end}`;
+      btnAdd.disabled = true;
+      return;
+    }
+    if (endVal < startVal) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = '❌ Ayat akhir harus >= ayat awal';
+      btnAdd.disabled = true;
+      return;
+    }
+    const count = endVal - startVal + 1;
+    if (count > MAX_AYAH_COUNT) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Max ${MAX_AYAH_COUNT} ayat. Terpilih: ${count} ayat.`;
+      btnAdd.disabled = true;
+      return;
+    }
+    infoBox.className = 'range-info';
+    infoBox.innerHTML = `✅ Juz ${currentJuz.juz} • Ayat <b>${startVal} - ${endVal}</b> • Total: <b>${count} ayat</b>`;
+    btnAdd.disabled = false;
+  }
+
   async function previewAyah() {
     const startVal = parseInt(document.getElementById('ayahStart').value);
     const endVal = parseInt(document.getElementById('ayahEnd').value);
     const qariId = document.getElementById('qariSelect').value;
-
     if (!currentJuz || isNaN(startVal) || isNaN(endVal) || endVal < startVal) {
       document.getElementById('status').textContent = '❌ Rentang ayat tidak valid';
       return;
     }
-
-    const count = endVal - startVal + 1;
-    if (count > MAX_AYAH_COUNT) {
-      document.getElementById('status').textContent = `❌ Max ${MAX_AYAH_COUNT} ayat`;
-      return;
-    }
-
-    document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat ayat awal & akhir...</div>';
-
-    // Fetch ayat awal & akhir saja untuk preview
+    document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat...</div>';
     const [firstAyah, lastAyah] = await Promise.all([
-      fetchAyah(startVal, qariId),
-      fetchAyah(endVal, qariId)
+      fetchAyah(startVal, qariId), fetchAyah(endVal, qariId)
     ]);
-
     if (!firstAyah || !lastAyah) {
-      document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat. Cek internet.</div>';
+      document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat.</div>';
       return;
     }
-
     const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
-    selectedRange = {
-      start: startVal,
-      end: endVal,
-      count: count,
-      juz: currentJuz.juz,
-      qari: qariId,
-      qariName: qariName,
-      firstRef: firstAyah.ref,
-      lastRef: lastAyah.ref,
-      firstAudio: firstAyah.audioUrl
-    };
-
+    selectedAyah = { start: startVal, end: endVal, qari: qariId, firstRef: firstAyah.ref, lastRef: lastAyah.ref };
+    const count = endVal - startVal + 1;
     document.getElementById('previewBox').innerHTML = `
       <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;">
-        <div style="font-size:0.85em;opacity:0.8;">Juz ${currentJuz.juz}</div>
         <div style="font-size:0.8em;color:#ffeb3b;margin:5px 0;">🎙️ ${qariName}</div>
-        <div style="font-size:0.95em;margin:8px 0;">
-          📖 <b>${count} ayat</b> dari<br>
-          <b>${firstAyah.ref}</b> → <b>${lastAyah.ref}</b>
-        </div>
-        <div style="font-size:0.85em;opacity:0.8;margin:5px 0;">
-          Global: #${startVal} - #${endVal}
-        </div>
+        <div style="font-size:0.95em;margin:8px 0;">📖 <b>${count} ayat</b>: ${firstAyah.ref} → ${lastAyah.ref}</div>
         <div class="arabic" style="font-size:1.3em;margin:10px 0;">${firstAyah.arab}</div>
         <div class="translation" style="font-size:0.85em;">"${firstAyah.translation}"</div>
-        <button class="btn-test" onclick="testAudio('${firstAyah.audioUrl}')">🔊 Test Suara Ayat Awal</button>
+        <button class="btn-test" onclick="testAudio('${firstAyah.audioUrl}')">🔊 Test Suara</button>
       </div>
     `;
-    document.getElementById('status').textContent = `✅ Rentang siap: ${count} ayat dari Juz ${currentJuz.juz}`;
+    document.getElementById('status').textContent = `✅ Rentang siap: ${count} ayat`;
   }
 
   function testAudio(url) {
@@ -609,7 +1065,6 @@
     setTimeout(() => a.pause(), 15000);
   }
 
-  // ===== TAMBAH ALARM =====
   async function addAlarm() {
     const time = document.getElementById('alarmTime').value;
     const label = document.getElementById('alarmLabel').value || 'Alarm';
@@ -617,49 +1072,33 @@
     const endVal = parseInt(document.getElementById('ayahEnd').value);
     const qariId = document.getElementById('qariSelect').value;
     const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
-
     if (!time) return alert('⏰ Pilih waktu!');
     if (!currentJuz) return alert('📖 Pilih juz!');
-    if (isNaN(startVal) || isNaN(endVal) || endVal < startVal) return alert('❌ Rentang ayat tidak valid!');
+    if (isNaN(startVal) || isNaN(endVal) || endVal < startVal) return alert('❌ Rentang tidak valid!');
     const count = endVal - startVal + 1;
     if (count > MAX_AYAH_COUNT) return alert(`❌ Max ${MAX_AYAH_COUNT} ayat!`);
 
-    // Kalau belum preview, fetch dulu untuk dapat ref
-    if (!selectedRange || selectedRange.start !== startVal || selectedRange.end !== endVal) {
-      document.getElementById('status').textContent = '⏳ Memuat data ayat...';
+    if (!selectedAyah || selectedAyah.start !== startVal || selectedAyah.end !== endVal) {
+      document.getElementById('status').textContent = '⏳ Memuat data...';
       const [firstAyah, lastAyah] = await Promise.all([
-        fetchAyah(startVal, qariId),
-        fetchAyah(endVal, qariId)
+        fetchAyah(startVal, qariId), fetchAyah(endVal, qariId)
       ]);
-      if (!firstAyah || !lastAyah) return alert('❌ Gagal memuat ayat.');
-      selectedRange = {
-        start: startVal, end: endVal, count,
-        juz: currentJuz.juz, qari: qariId, qariName,
-        firstRef: firstAyah.ref, lastRef: lastAyah.ref
-      };
+      if (!firstAyah || !lastAyah) return alert('❌ Gagal memuat.');
+      selectedAyah = { start: startVal, end: endVal, firstRef: firstAyah.ref, lastRef: lastAyah.ref };
     }
 
     alarms.push({
-      id: Date.now(),
-      time, label,
-      juz: currentJuz.juz,
-      startAyah: startVal,
-      endAyah: endVal,
-      count: count,
-      firstRef: selectedRange.firstRef,
-      lastRef: selectedRange.lastRef,
-      qari: qariId,
-      qariName: qariName,
-      active: true,
-      triggered: false
+      id: Date.now(), time, label,
+      juz: currentJuz.juz, startAyah: startVal, endAyah: endVal, count,
+      firstRef: selectedAyah.firstRef, lastRef: selectedAyah.lastRef,
+      qari: qariId, qariName, active: true, triggered: false
     });
-    saveAlarms();
-    renderAlarms();
-    document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan (${qariName})`;
+    saveAlarms(); renderAlarms();
+    document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan`;
     document.getElementById('alarmTime').value = '';
     document.getElementById('alarmLabel').value = '';
     document.getElementById('previewBox').innerHTML = '';
-    selectedRange = null;
+    selectedAyah = null;
   }
 
   function deleteAlarm(id) {
@@ -681,7 +1120,7 @@
   function renderAlarms() {
     const list = document.getElementById('alarmList');
     if (!alarms.length) {
-      list.innerHTML = '<p style="opacity:0.7;text-align:center;">Belum ada alarm</p>';
+      list.innerHTML = '<p style="opacity:0.7;text-align:center;">Belum ada alarm manual</p>';
       return;
     }
     list.innerHTML = alarms.map(a => `
@@ -690,7 +1129,6 @@
           <div class="time">${a.time} ${a.active?'🔔':'🔕'}</div>
           <div style="font-weight:bold;">${a.label}</div>
           <div class="detail">📖 Juz ${a.juz} • Ayat ${a.startAyah}-${a.endAyah} (${a.count} ayat)</div>
-          <div class="detail" style="font-size:0.8em;">${a.firstRef} → ${a.lastRef}</div>
           <span class="qari-tag">🎙️ ${a.qariName || 'Alafasy'}</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
@@ -701,65 +1139,50 @@
     `).join('');
   }
 
-  // ===== CEK ALARM =====
   function checkAlarms(now) {
     const current = now.toTimeString().slice(0,5);
     const sec = now.getSeconds();
     alarms.forEach(a => {
       if (a.active && a.time === current && sec === 0 && !a.triggered) {
         a.triggered = true;
-        triggerAlarm(a);
+        triggerManualAlarm(a);
         saveAlarms();
       }
       if (a.time !== current) a.triggered = false;
     });
   }
 
-  // ===== PICU ALARM =====
-  async function triggerAlarm(alarm) {
+  async function triggerManualAlarm(alarm) {
+    document.getElementById('ringingTitle').textContent = '🕌 Murottal Sedang Berputar';
+    document.getElementById('qariDisplay').textContent = `🎙️ ${alarm.qariName}`;
     isRinging = true;
     currentAyahIndex = 0;
-    ayahQueue = [];
-    isPaused = false;
-
-    document.getElementById('ringing').classList.add('active');
-    document.getElementById('progressText').textContent = `Memuat ${alarm.count} ayat...`;
-    document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('ringingArabic').textContent = '⏳ Memuat ayat...';
-    document.getElementById('ringingTranslation').textContent = '';
-    document.getElementById('ringingRef').textContent = '';
-    document.getElementById('pauseBtn').textContent = '⏸ Pause';
-    document.getElementById('qariDisplay').textContent = `🎙️ ${alarm.qariName || 'Syekh Alafasy'}`;
-    hideCountdown();
-
     ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.endAyah, alarm.qari);
-
     if (ayahQueue.length === 0) {
       document.getElementById('progressText').textContent = '❌ Gagal memuat ayat';
       return;
     }
+    document.getElementById('ringing').classList.add('active');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('pauseBtn').textContent = '⏸ Pause';
+    hideCountdown();
 
     if (Notification.permission === "granted") {
       new Notification("🕌 " + alarm.label, {
-        body: `Juz ${alarm.juz} • ${ayahQueue.length} ayat • ${alarm.qariName}`,
+        body: `${ayahQueue.length} ayat • ${alarm.qariName}`,
         requireInteraction: true, vibrate: [500, 500, 500]
       });
     }
-
-    if ('wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').catch(()=>{});
-    }
-
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
     playCurrentAyah();
   }
 
-  // ===== PUTAR AYAT =====
+  // ===== PLAY AYAT (shared) =====
   function playCurrentAyah() {
     if (!isRinging || currentAyahIndex >= ayahQueue.length) {
       onMurottalFinished();
       return;
     }
-
     const ayah = ayahQueue[currentAyahIndex];
     const total = ayahQueue.length;
     const progress = ((currentAyahIndex + 1) / total) * 100;
@@ -771,25 +1194,15 @@
     document.getElementById('ringingArabic').textContent = ayah.arab;
     document.getElementById('ringingTranslation').textContent = `"${ayah.translation}"`;
 
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
     stopFadeOut();
 
     currentAudio = new Audio(ayah.audioUrl);
     currentAudio.volume = 1.0;
     currentAudio.onended = () => {
-      if (!isPaused && isRinging) {
-        currentAyahIndex++;
-        playCurrentAyah();
-      }
+      if (!isPaused && isRinging) { currentAyahIndex++; playCurrentAyah(); }
     };
-    currentAudio.onerror = () => {
-      console.error('Audio error, skip');
-      currentAyahIndex++;
-      playCurrentAyah();
-    };
+    currentAudio.onerror = () => { currentAyahIndex++; playCurrentAyah(); };
 
     if (!isPaused) {
       currentAudio.play().then(() => {
@@ -798,7 +1211,6 @@
     }
   }
 
-  // ===== FADE OUT =====
   function startFadeOut(audio) {
     stopFadeOut();
     volumeIndicator.classList.add('active');
@@ -850,7 +1262,7 @@
     hideCountdown();
     document.getElementById('progressText').textContent = `⏸ Auto-close dibatalkan.`;
     document.getElementById('ringingArabic').textContent = '🤲';
-    document.getElementById('ringingTranslation').textContent = 'Silakan matikan manual jika sudah siap.';
+    document.getElementById('ringingTranslation').textContent = 'Silakan matikan manual.';
   }
 
   function hideCountdown() {
@@ -885,8 +1297,7 @@
     hideCountdown();
     isPaused = !isPaused;
     if (isPaused) {
-      currentAudio.pause();
-      stopFadeOut();
+      currentAudio.pause(); stopFadeOut();
       document.getElementById('pauseBtn').textContent = '▶ Play';
     } else {
       currentAudio.play().catch(()=>{});
@@ -896,17 +1307,15 @@
   }
 
   function stopAlarm() {
-    isRinging = false;
-    isPaused = false;
-    stopFadeOut();
-    hideCountdown();
+    isRinging = false; isPaused = false;
+    stopFadeOut(); hideCountdown();
     if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-    ayahQueue = [];
-    currentAyahIndex = 0;
+    ayahQueue = []; currentAyahIndex = 0;
     document.getElementById('ringing').classList.remove('active');
   }
 
   function snooze() {
+    // Snooze hanya untuk alarm manual
     const lastAlarm = alarms.find(a => a.triggered) || alarms[alarms.length - 1];
     stopAlarm();
     if (!lastAlarm) return;
@@ -916,17 +1325,13 @@
       id: Date.now(), time,
       label: 'Snooze: ' + lastAlarm.label,
       juz: lastAlarm.juz,
-      startAyah: lastAlarm.startAyah,
-      endAyah: lastAlarm.endAyah,
+      startAyah: lastAlarm.startAyah, endAyah: lastAlarm.endAyah,
       count: lastAlarm.count,
-      firstRef: lastAlarm.firstRef,
-      lastRef: lastAlarm.lastRef,
-      qari: lastAlarm.qari,
-      qariName: lastAlarm.qariName,
+      firstRef: lastAlarm.firstRef, lastRef: lastAlarm.lastRef,
+      qari: lastAlarm.qari, qariName: lastAlarm.qariName,
       active: true, triggered: false
     });
-    saveAlarms();
-    renderAlarms();
+    saveAlarms(); renderAlarms();
   }
 
   init();
