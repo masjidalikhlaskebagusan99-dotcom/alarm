@@ -3,141 +3,398 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⏰ Alarm Android</title>
+<title>🕌 Alarm Murottal Al-Quran</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#1e3c72">
+<meta name="theme-color" content="#0d5c3d">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: sans-serif;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
-    color: #fff; min-height: 100vh; padding: 20px;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #0d5c3d, #1a8f5f);
+    color: #fff; min-height: 100vh; padding: 15px;
     display: flex; flex-direction: column; align-items: center;
   }
-  .clock { font-size: 3.5em; font-weight: bold; margin: 20px 0; }
+  h1 { font-size: 1.6em; text-align: center; margin-bottom: 5px; }
+  .subtitle { opacity: 0.8; font-size: 0.9em; margin-bottom: 15px; text-align: center; }
+  .clock { font-size: 3em; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
   .card {
     background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
-    border-radius: 15px; padding: 20px; margin: 10px;
+    border-radius: 15px; padding: 15px; margin: 8px 0;
     width: 100%; max-width: 500px;
   }
-  input { padding: 10px; border-radius: 8px; border: none; margin-right: 5px; background: #fff; }
+  .card h3 { margin-bottom: 10px; font-size: 1.1em; }
+  label { display: block; margin: 8px 0 4px; font-size: 0.9em; opacity: 0.9; }
+  select, input[type="time"], input[type="text"], input[type="number"] {
+    width: 100%; padding: 10px; font-size: 1em;
+    border: none; border-radius: 8px; background: #fff; color: #333; margin-bottom: 8px;
+  }
   button {
     padding: 10px 18px; border: none; border-radius: 8px;
-    cursor: pointer; background: #ff9800; color: #fff; font-weight: bold;
+    cursor: pointer; background: #ff9800; color: #fff;
+    font-weight: bold; font-size: 1em; margin-top: 5px;
   }
+  button:hover { background: #f57c00; }
+  .btn-test { background: #2196f3; }
+  .btn-preset { background: #9c27b0; font-size: 0.85em; padding: 6px 10px; margin: 3px; }
+  .preset-list { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
   .alarm-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 10px; background: rgba(255,255,255,0.15);
-    border-radius: 8px; margin: 8px 0;
+    border-radius: 8px; margin: 6px 0; font-size: 0.9em;
   }
-  .delete { background: #e53935; }
+  .alarm-item .info { flex: 1; }
+  .alarm-item .time { font-size: 1.2em; font-weight: bold; }
+  .alarm-item .detail { font-size: 0.85em; opacity: 0.85; margin-top: 3px; }
+  .btn-small { padding: 5px 10px; font-size: 0.85em; margin-left: 4px; }
+  .btn-del { background: #e53935; }
+  .btn-toggle.on { background: #4caf50; }
+  .btn-toggle.off { background: #757575; }
+  .status { margin-top: 8px; font-size: 0.85em; color: #ffeb3b; }
+  .loading { opacity: 0.7; font-style: italic; }
+
+  /* ===== OVERLAY ALARM ===== */
   .ringing {
-    position: fixed; inset: 0; background: rgba(229,57,53,0.95);
-    display: none; flex-direction: column; justify-content: center;
-    align-items: center; z-index: 9999; animation: shake 0.5s infinite;
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0d5c3d, #1a8f5f);
+    display: none; flex-direction: column; justify-content: flex-start;
+    align-items: center; z-index: 9999; padding: 15px;
+    text-align: center; overflow-y: auto;
   }
-  .ringing.active { display: flex; }
-  .ringing h2 { font-size: 3em; margin-bottom: 20px; }
-  @keyframes shake {
-    0%,100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
+  .ringing.active { display: flex; animation: pulse 3s infinite; }
+  @keyframes pulse {
+    0%,100% { background: linear-gradient(135deg, #0d5c3d, #1a8f5f); }
+    50% { background: linear-gradient(135deg, #1a8f5f, #2bb573); }
   }
+  .ringing h2 { font-size: 1.5em; margin: 10px 0; }
+  .progress-bar {
+    width: 100%; max-width: 400px; height: 8px;
+    background: rgba(255,255,255,0.2); border-radius: 4px;
+    margin: 10px 0; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: #ffeb3b;
+    transition: width 0.3s; width: 0%;
+  }
+  .progress-text { font-size: 0.9em; opacity: 0.9; margin-bottom: 10px; }
+  .arabic {
+    font-size: 1.8em; line-height: 1.8;
+    font-family: 'Traditional Arabic', 'Amiri', 'Scheherazade', serif;
+    direction: rtl; margin: 10px 0; padding: 15px;
+    background: rgba(255,255,255,0.1); border-radius: 15px;
+    max-width: 95%; min-height: 80px;
+  }
+  .translation {
+    font-style: italic; opacity: 0.95;
+    margin: 10px 0; max-width: 95%; font-size: 0.95em;
+    padding: 10px; background: rgba(0,0,0,0.15); border-radius: 10px;
+  }
+  .ayah-ref { font-size: 0.85em; opacity: 0.8; margin: 5px 0; }
+  .nav-buttons {
+    display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; justify-content: center;
+  }
+  .nav-buttons button { padding: 8px 14px; font-size: 0.9em; margin: 0; }
+  .btn-prev { background: #607d8b; }
+  .btn-next { background: #2196f3; }
+  .btn-pause { background: #ff9800; }
+  .ringing-buttons { margin: 15px 0; }
+  .ringing-buttons button { font-size: 1em; padding: 10px 20px; margin: 4px; }
   .snooze-btn { background: #2196f3; }
-  .stop-btn { background: #4caf50; }
-  .install-hint { background: #4caf50; padding: 10px; border-radius: 8px; margin: 10px; }
+  .stop-btn { background: #e53935; }
 </style>
 </head>
 <body>
 
-<h1>⏰ Alarm PWA</h1>
+<h1>🕌 Alarm Murottal Al-Quran</h1>
+<div class="subtitle">Putar hingga 40 ayat berturut-turut sebagai alarm</div>
 <div class="clock" id="clock">--:--:--</div>
 
-<div class="install-hint" id="installHint" style="display:none">
-  💡 Klik menu browser → "Install app" agar bisa jalan di background
-</div>
-
+<!-- Form tambah alarm -->
 <div class="card">
-  <h3>Tambah Alarm</h3>
+  <h3>➕ Tambah Alarm</h3>
+
+  <label>⏰ Waktu:</label>
   <input type="time" id="alarmTime">
-  <input type="text" id="alarmLabel" placeholder="Label" style="width:120px">
-  <button onclick="addAlarm()">+ Tambah</button>
+
+  <label>📝 Label (opsional):</label>
+  <input type="text" id="alarmLabel" placeholder="Contoh: murottal pagi">
+
+  <label>📖 Pilih Juz (1-30):</label>
+  <select id="juzSelect"><option value="">-- Pilih Juz --</option></select>
+
+  <label>🎵 Ayat Populer:</label>
+  <div class="preset-list" id="presetList"></div>
+
+  <label>🔢 Nomor ayat awal (1-6236):</label>
+  <input type="number" id="ayahNumber" min="1" max="6236" placeholder="Contoh: 1 (Al-Fatihah:1)">
+
+  <label>🔁 Jumlah ayat yang diputar (1-100):</label>
+  <input type="number" id="ayahCount" min="1" max="100" value="40" placeholder="Default: 40">
+
+  <button onclick="previewAyah()">👁️ Preview Ayat Awal</button>
+  <button onclick="addAlarm()">✅ Tambah Alarm</button>
+  <div class="status" id="status">Pilih ayat awal & jumlah ayat untuk alarm</div>
+  <div id="previewBox" style="margin-top:10px;"></div>
 </div>
 
+<!-- Daftar alarm -->
 <div class="card">
-  <h3>Daftar Alarm</h3>
+  <h3>📋 Daftar Alarm</h3>
   <div id="alarmList"></div>
 </div>
 
+<!-- Overlay saat alarm berbunyi -->
 <div class="ringing" id="ringing">
-  <h2>🔔 ALARM!</h2>
-  <p id="ringingLabel" style="font-size:1.5em;margin-bottom:30px">Waktunya!</p>
-  <button class="snooze-btn" onclick="snooze()">Tunda 5 Menit</button>
-  <button class="stop-btn" onclick="stopAlarm()">Matikan</button>
+  <h2>🕌 Murottal Sedang Berputar</h2>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">Ayat 0 / 0</div>
+  <div class="ayah-ref" id="ringingRef">-</div>
+  <div class="arabic" id="ringingArabic">⏳ Memuat...</div>
+  <div class="translation" id="ringingTranslation">...</div>
+
+  <div class="nav-buttons">
+    <button class="btn-prev" onclick="prevAyah()">⏮ Sebelumnya</button>
+    <button class="btn-pause" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+    <button class="btn-next" onclick="nextAyah()">⏭ Berikutnya</button>
+  </div>
+
+  <div class="ringing-buttons">
+    <button class="snooze-btn" onclick="snooze()">😴 Tunda 9 Menit</button>
+    <button class="stop-btn" onclick="stopAlarm()">✓ Matikan</button>
+  </div>
 </div>
 
 <script>
-  // Register Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(e => console.log('SW gagal:', e));
-  }
+  // ===== DATA PRESET =====
+  const PRESETS = [
+    { name: "Al-Fatihah:1", ayah: 1 },
+    { name: "Ayat Kursi (2:255)", ayah: 255 },
+    { name: "Al-Baqarah:286", ayah: 286 },
+    { name: "Yasin:1", ayah: 3262 },
+    { name: "Ar-Rahman:1", ayah: 4575 },
+    { name: "Al-Waqi'ah:1", ayah: 4893 },
+    { name: "Al-Ikhlas:1", ayah: 6227 },
+    { name: "Al-Falaq:1", ayah: 6230 },
+    { name: "An-Nas:1", ayah: 6232 }
+  ];
 
-  let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
-  let audioCtx = null, beepInterval = null;
+  const JUZ_RANGES = [
+    1, 149, 253, 427, 512, 616, 741, 862, 982, 1107,
+    1223, 1320, 1414, 1505, 1593, 1697, 1813, 1931, 2068, 2216,
+    2353, 2491, 2630, 2742, 2852, 2982, 3113, 3275, 3430, 3590
+  ];
 
-  if ("Notification" in window && Notification.permission !== "granted") {
-    Notification.requestPermission();
+  let alarms = JSON.parse(localStorage.getItem('alarms_quran') || '[]');
+  let selectedAyah = null;
+
+  // ===== STATE ALARM SEDANG BERPUTAR =====
+  let ayahQueue = [];          // Array data ayat yang akan diputar
+  let currentAyahIndex = 0;    // Index ayat yang sedang diputar
+  let currentAudio = null;     // Audio element saat ini
+  let isPaused = false;
+  let isRinging = false;
+
+  // ===== INIT =====
+  function init() {
+    const juzSel = document.getElementById('juzSelect');
+    for (let i = 1; i <= 30; i++) {
+      const start = JUZ_RANGES[i-1];
+      const end = (i < 30) ? JUZ_RANGES[i] - 1 : 6236;
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `Juz ${i} (ayat ${start}-${end})`;
+      juzSel.appendChild(opt);
+    }
+    juzSel.onchange = () => {
+      const j = parseInt(juzSel.value);
+      if (j) document.getElementById('ayahNumber').value = JUZ_RANGES[j-1];
+    };
+
+    const presetList = document.getElementById('presetList');
+    PRESETS.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-preset';
+      btn.textContent = p.name;
+      btn.onclick = () => {
+        document.getElementById('ayahNumber').value = p.ayah;
+        previewAyah();
+      };
+      presetList.appendChild(btn);
+    });
+
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+    renderAlarms();
   }
 
   function updateClock() {
     const now = new Date();
-    document.getElementById('clock').textContent =
-      now.toTimeString().slice(0,8);
+    document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
     checkAlarms(now);
   }
-  setInterval(updateClock, 1000);
-  updateClock();
 
-  function addAlarm() {
+  // ===== FETCH 1 AYAT =====
+  async function fetchAyah(ayahNumber) {
+    const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,ar.alafasy`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.code !== 200) return null;
+      const [arab, indo, audio] = data.data;
+      return {
+        globalNumber: arab.number,
+        arab: arab.text,
+        translation: indo.text,
+        audioUrl: audio.audio,
+        surah: arab.surah.name,
+        surahEn: arab.surah.englishName,
+        numberInSurah: arab.numberInSurah,
+        juz: arab.juz,
+        ref: `${arab.surah.englishName} : ${arab.numberInSurah}`
+      };
+    } catch (e) {
+      console.error('Fetch ayat gagal:', e);
+      return null;
+    }
+  }
+
+  // ===== FETCH BATCH AYAT (untuk antrian) =====
+  async function fetchAyahBatch(startNumber, count) {
+    const result = [];
+    const batchSize = 5; // fetch 5 per batch agar tidak berat
+    for (let i = 0; i < count; i += batchSize) {
+      const batch = [];
+      for (let j = 0; j < batchSize && (i + j) < count; j++) {
+        const num = startNumber + i + j;
+        if (num > 6236) break; // batas Al-Quran
+        batch.push(fetchAyah(num));
+      }
+      const results = await Promise.all(batch);
+      results.forEach(r => { if (r) result.push(r); });
+      // Update UI progress saat loading
+      if (isRinging) {
+        document.getElementById('progressText').textContent =
+          `Memuat... ${result.length} / ${count} ayat`;
+      }
+    }
+    return result;
+  }
+
+  // ===== PREVIEW AYAT AWAL =====
+  async function previewAyah() {
+    const num = parseInt(document.getElementById('ayahNumber').value);
+    if (!num || num < 1 || num > 6236) {
+      document.getElementById('status').textContent = '❌ Nomor ayat harus 1-6236';
+      return;
+    }
+    document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat ayat...</div>';
+    const data = await fetchAyah(num);
+    if (!data) {
+      document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat. Cek internet.</div>';
+      return;
+    }
+    selectedAyah = { number: num, ...data };
+    const count = parseInt(document.getElementById('ayahCount').value) || 40;
+    const endNum = Math.min(num + count - 1, 6236);
+    document.getElementById('previewBox').innerHTML = `
+      <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;">
+        <div style="font-size:0.85em;opacity:0.8;">${data.ref} (Juz ${data.juz})</div>
+        <div class="arabic" style="font-size:1.4em;margin:10px 0;">${data.arab}</div>
+        <div class="translation" style="font-size:0.9em;">"${data.translation}"</div>
+        <div style="font-size:0.85em;opacity:0.9;margin:8px 0;">
+          📖 Akan memutar <b>${count} ayat</b> dari <b>${data.ref}</b> sampai ayat #${endNum}
+        </div>
+        <button class="btn-test" onclick="testAudio('${data.audioUrl}')">🔊 Test Suara</button>
+      </div>
+    `;
+    document.getElementById('status').textContent = `✅ Ayat ${num} siap (akan putar ${count} ayat)`;
+  }
+
+  function testAudio(url) {
+    const a = new Audio(url);
+    a.play().catch(e => alert('Gagal: ' + e.message));
+    setTimeout(() => a.pause(), 15000);
+  }
+
+  // ===== TAMBAH ALARM =====
+  async function addAlarm() {
     const time = document.getElementById('alarmTime').value;
     const label = document.getElementById('alarmLabel').value || 'Alarm';
-    if (!time) return alert('Pilih waktu!');
-    alarms.push({ id: Date.now(), time, label, active: true });
-    localStorage.setItem('alarms', JSON.stringify(alarms));
+    const num = parseInt(document.getElementById('ayahNumber').value);
+    const count = parseInt(document.getElementById('ayahCount').value) || 40;
+
+    if (!time) return alert('⏰ Pilih waktu!');
+    if (!num || num < 1 || num > 6236) return alert('📖 Pilih nomor ayat (1-6236)!');
+    if (count < 1 || count > 100) return alert('🔁 Jumlah ayat harus 1-100!');
+
+    if (!selectedAyah || selectedAyah.number !== num) {
+      document.getElementById('status').textContent = '⏳ Memuat data ayat...';
+      const data = await fetchAyah(num);
+      if (!data) return alert('❌ Gagal memuat ayat.');
+      selectedAyah = { number: num, ...data };
+    }
+
+    alarms.push({
+      id: Date.now(),
+      time, label,
+      startAyah: num,
+      count: count,
+      startRef: selectedAyah.ref,
+      active: true,
+      triggered: false
+    });
+    saveAlarms();
     renderAlarms();
+    document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan (${count} ayat dari ${selectedAyah.ref})`;
+    document.getElementById('alarmTime').value = '';
+    document.getElementById('alarmLabel').value = '';
+    document.getElementById('ayahNumber').value = '';
+    document.getElementById('ayahCount').value = '40';
+    document.getElementById('previewBox').innerHTML = '';
+    selectedAyah = null;
   }
 
   function deleteAlarm(id) {
+    if (!confirm('Hapus alarm ini?')) return;
     alarms = alarms.filter(a => a.id !== id);
-    localStorage.setItem('alarms', JSON.stringify(alarms));
-    renderAlarms();
+    saveAlarms(); renderAlarms();
   }
 
   function toggleAlarm(id) {
     const a = alarms.find(x => x.id === id);
     if (a) a.active = !a.active;
-    localStorage.setItem('alarms', JSON.stringify(alarms));
-    renderAlarms();
+    saveAlarms(); renderAlarms();
+  }
+
+  function saveAlarms() {
+    localStorage.setItem('alarms_quran', JSON.stringify(alarms));
   }
 
   function renderAlarms() {
     const list = document.getElementById('alarmList');
-    if (!alarms.length) { list.innerHTML = '<p>Belum ada alarm</p>'; return; }
+    if (!alarms.length) {
+      list.innerHTML = '<p style="opacity:0.7;text-align:center;">Belum ada alarm</p>';
+      return;
+    }
     list.innerHTML = alarms.map(a => `
       <div class="alarm-item" style="${a.active?'':'opacity:0.5'}">
-        <div>
-          <strong style="font-size:1.3em">${a.time}</strong>
-          <div style="font-size:0.9em">${a.label}</div>
+        <div class="info">
+          <div class="time">${a.time} ${a.active?'🔔':'🔕'}</div>
+          <div style="font-weight:bold;">${a.label}</div>
+          <div class="detail">📖 ${a.count} ayat mulai dari ${a.startRef}</div>
         </div>
-        <div>
-          <button onclick="toggleAlarm(${a.id})">${a.active?'✓ ON':'OFF'}</button>
-          <button class="delete" onclick="deleteAlarm(${a.id})">🗑</button>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button class="btn-small btn-toggle ${a.active?'on':'off'}" onclick="toggleAlarm(${a.id})">${a.active?'ON':'OFF'}</button>
+          <button class="btn-small btn-del" onclick="deleteAlarm(${a.id})">🗑️</button>
         </div>
       </div>
     `).join('');
   }
-  renderAlarms();
 
+  // ===== CEK ALARM =====
   function checkAlarms(now) {
     const current = now.toTimeString().slice(0,5);
     const sec = now.getSeconds();
@@ -145,59 +402,168 @@
       if (a.active && a.time === current && sec === 0 && !a.triggered) {
         a.triggered = true;
         triggerAlarm(a);
-        localStorage.setItem('alarms', JSON.stringify(alarms));
+        saveAlarms();
       }
       if (a.time !== current) a.triggered = false;
     });
   }
 
-  function triggerAlarm(alarm) {
-    document.getElementById('ringingLabel').textContent = alarm.label;
+  // ===== PICU ALARM =====
+  async function triggerAlarm(alarm) {
+    isRinging = true;
+    currentAyahIndex = 0;
+    ayahQueue = [];
+    isPaused = false;
+
     document.getElementById('ringing').classList.add('active');
-    startBeep();
+    document.getElementById('progressText').textContent = `Memuat ${alarm.count} ayat...`;
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('ringingArabic').textContent = '⏳ Memuat ayat...';
+    document.getElementById('ringingTranslation').textContent = '';
+    document.getElementById('ringingRef').textContent = '';
+    document.getElementById('pauseBtn').textContent = '⏸ Pause';
+
+    // Fetch semua ayat dalam antrian
+    ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.count);
+
+    if (ayahQueue.length === 0) {
+      document.getElementById('progressText').textContent = '❌ Gagal memuat ayat';
+      return;
+    }
+
+    // Notifikasi
     if (Notification.permission === "granted") {
-      new Notification("🔔 " + alarm.label, {
-        body: `Alarm ${alarm.time} berbunyi!`,
-        requireInteraction: true,
-        vibrate: [500, 500, 500]
+      new Notification("🕌 " + alarm.label, {
+        body: `Murottal ${ayahQueue.length} ayat dimulai`,
+        requireInteraction: true, vibrate: [500, 500, 500]
       });
     }
-    // Wake Lock biar layar tetap nyala
+
+    // Wake lock
     if ('wakeLock' in navigator) {
       navigator.wakeLock.request('screen').catch(()=>{});
     }
+
+    // Mulai putar ayat pertama
+    playCurrentAyah();
   }
 
-  function startBeep() {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    beepInterval = setInterval(() => {
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination);
-      osc.frequency.value = 880; gain.gain.value = 0.3;
-      osc.start(); setTimeout(() => osc.stop(), 300);
-    }, 500);
+  // ===== PUTAR AYAT SAAT INI =====
+  function playCurrentAyah() {
+    if (!isRinging || currentAyahIndex >= ayahQueue.length) {
+      // Selesai semua
+      if (isRinging) {
+        document.getElementById('progressText').textContent = `✅ Selesai (${ayahQueue.length} ayat)`;
+        document.getElementById('ringingArabic').textContent = '🤲 Selesai murottal';
+        document.getElementById('ringingTranslation').textContent = 'Silakan matikan atau tunda alarm';
+        document.getElementById('progressFill').style.width = '100%';
+      }
+      return;
+    }
+
+    const ayah = ayahQueue[currentAyahIndex];
+    const total = ayahQueue.length;
+    const progress = ((currentAyahIndex + 1) / total) * 100;
+
+    // Update UI
+    document.getElementById('progressFill').style.width = progress + '%';
+    document.getElementById('progressText').textContent = `Ayat ${currentAyahIndex + 1} / ${total}`;
+    document.getElementById('ringingRef').textContent = `${ayah.ref} • Juz ${ayah.juz}`;
+    document.getElementById('ringingArabic').textContent = ayah.arab;
+    document.getElementById('ringingTranslation').textContent = `"${ayah.translation}"`;
+
+    // Putar audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    currentAudio = new Audio(ayah.audioUrl);
+    currentAudio.volume = 1.0;
+    currentAudio.onended = () => {
+      if (!isPaused && isRinging) {
+        currentAyahIndex++;
+        playCurrentAyah();
+      }
+    };
+    currentAudio.onerror = (e) => {
+      console.error('Audio error, skip ke ayat berikutnya');
+      currentAyahIndex++;
+      playCurrentAyah();
+    };
+
+    if (!isPaused) {
+      currentAudio.play().catch(e => {
+        console.log('Autoplay gagal:', e);
+      });
+    }
   }
 
-  function stopBeep() {
-    if (beepInterval) clearInterval(beepInterval);
-    if (audioCtx) audioCtx.close();
+  // ===== KONTROL NAVIGASI =====
+  function nextAyah() {
+    if (currentAyahIndex < ayahQueue.length - 1) {
+      currentAyahIndex++;
+      isPaused = false;
+      document.getElementById('pauseBtn').textContent = '⏸ Pause';
+      playCurrentAyah();
+    }
   }
 
+  function prevAyah() {
+    if (currentAyahIndex > 0) {
+      currentAyahIndex--;
+      isPaused = false;
+      document.getElementById('pauseBtn').textContent = '⏸ Pause';
+      playCurrentAyah();
+    }
+  }
+
+  function togglePause() {
+    if (!currentAudio) return;
+    isPaused = !isPaused;
+    if (isPaused) {
+      currentAudio.pause();
+      document.getElementById('pauseBtn').textContent = '▶ Play';
+    } else {
+      currentAudio.play().catch(()=>{});
+      document.getElementById('pauseBtn').textContent = '⏸ Pause';
+    }
+  }
+
+  // ===== STOP & SNOOZE =====
   function stopAlarm() {
-    stopBeep();
+    isRinging = false;
+    isPaused = false;
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio = null;
+    }
+    ayahQueue = [];
+    currentAyahIndex = 0;
     document.getElementById('ringing').classList.remove('active');
   }
 
   function snooze() {
-    stopBeep();
-    document.getElementById('ringing').classList.remove('active');
-    const t = new Date(Date.now() + 5*60*1000);
+    const lastAlarm = alarms.find(a => a.triggered) || alarms[alarms.length - 1];
+    stopAlarm();
+    if (!lastAlarm) return;
+    const t = new Date(Date.now() + 9*60*1000);
     const time = t.toTimeString().slice(0,5);
-    alarms.push({ id: Date.now(), time, label: 'Snooze', active: true });
-    localStorage.setItem('alarms', JSON.stringify(alarms));
+    alarms.push({
+      id: Date.now(),
+      time,
+      label: 'Snooze: ' + lastAlarm.label,
+      startAyah: lastAlarm.startAyah,
+      count: lastAlarm.count,
+      startRef: lastAlarm.startRef,
+      active: true,
+      triggered: false
+    });
+    saveAlarms();
     renderAlarms();
   }
+
+  init();
 </script>
+
 </body>
 </html>
