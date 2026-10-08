@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⏰ Alarm Android</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e3c72">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: sans-serif;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    color: #fff; min-height: 100vh; padding: 20px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .clock { font-size: 3.5em; font-weight: bold; margin: 20px 0; }
+  .card {
+    background: rgba(255,255,255,0.1); backdrop-filter: blur(10px);
+    border-radius: 15px; padding: 20px; margin: 10px;
+    width: 100%; max-width: 500px;
+  }
+  input { padding: 10px; border-radius: 8px; border: none; margin-right: 5px; background: #fff; }
+  button {
+    padding: 10px 18px; border: none; border-radius: 8px;
+    cursor: pointer; background: #ff9800; color: #fff; font-weight: bold;
+  }
+  .alarm-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px; background: rgba(255,255,255,0.15);
+    border-radius: 8px; margin: 8px 0;
+  }
+  .delete { background: #e53935; }
+  .ringing {
+    position: fixed; inset: 0; background: rgba(229,57,53,0.95);
+    display: none; flex-direction: column; justify-content: center;
+    align-items: center; z-index: 9999; animation: shake 0.5s infinite;
+  }
+  .ringing.active { display: flex; }
+  .ringing h2 { font-size: 3em; margin-bottom: 20px; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+  }
+  .snooze-btn { background: #2196f3; }
+  .stop-btn { background: #4caf50; }
+  .install-hint { background: #4caf50; padding: 10px; border-radius: 8px; margin: 10px; }
+</style>
+</head>
+<body>
+
+<h1>⏰ Alarm PWA</h1>
+<div class="clock" id="clock">--:--:--</div>
+
+<div class="install-hint" id="installHint" style="display:none">
+  💡 Klik menu browser → "Install app" agar bisa jalan di background
+</div>
+
+<div class="card">
+  <h3>Tambah Alarm</h3>
+  <input type="time" id="alarmTime">
+  <input type="text" id="alarmLabel" placeholder="Label" style="width:120px">
+  <button onclick="addAlarm()">+ Tambah</button>
+</div>
+
+<div class="card">
+  <h3>Daftar Alarm</h3>
+  <div id="alarmList"></div>
+</div>
+
+<div class="ringing" id="ringing">
+  <h2>🔔 ALARM!</h2>
+  <p id="ringingLabel" style="font-size:1.5em;margin-bottom:30px">Waktunya!</p>
+  <button class="snooze-btn" onclick="snooze()">Tunda 5 Menit</button>
+  <button class="stop-btn" onclick="stopAlarm()">Matikan</button>
+</div>
+
+<script>
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(e => console.log('SW gagal:', e));
+  }
+
+  let alarms = JSON.parse(localStorage.getItem('alarms') || '[]');
+  let audioCtx = null, beepInterval = null;
+
+  if ("Notification" in window && Notification.permission !== "granted") {
+    Notification.requestPermission();
+  }
+
+  function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').textContent =
+      now.toTimeString().slice(0,8);
+    checkAlarms(now);
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function addAlarm() {
+    const time = document.getElementById('alarmTime').value;
+    const label = document.getElementById('alarmLabel').value || 'Alarm';
+    if (!time) return alert('Pilih waktu!');
+    alarms.push({ id: Date.now(), time, label, active: true });
+    localStorage.setItem('alarms', JSON.stringify(alarms));
+    renderAlarms();
+  }
+
+  function deleteAlarm(id) {
+    alarms = alarms.filter(a => a.id !== id);
+    localStorage.setItem('alarms', JSON.stringify(alarms));
+    renderAlarms();
+  }
+
+  function toggleAlarm(id) {
+    const a = alarms.find(x => x.id === id);
+    if (a) a.active = !a.active;
+    localStorage.setItem('alarms', JSON.stringify(alarms));
+    renderAlarms();
+  }
+
+  function renderAlarms() {
+    const list = document.getElementById('alarmList');
+    if (!alarms.length) { list.innerHTML = '<p>Belum ada alarm</p>'; return; }
+    list.innerHTML = alarms.map(a => `
+      <div class="alarm-item" style="${a.active?'':'opacity:0.5'}">
+        <div>
+          <strong style="font-size:1.3em">${a.time}</strong>
+          <div style="font-size:0.9em">${a.label}</div>
+        </div>
+        <div>
+          <button onclick="toggleAlarm(${a.id})">${a.active?'✓ ON':'OFF'}</button>
+          <button class="delete" onclick="deleteAlarm(${a.id})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+  renderAlarms();
+
+  function checkAlarms(now) {
+    const current = now.toTimeString().slice(0,5);
+    const sec = now.getSeconds();
+    alarms.forEach(a => {
+      if (a.active && a.time === current && sec === 0 && !a.triggered) {
+        a.triggered = true;
+        triggerAlarm(a);
+        localStorage.setItem('alarms', JSON.stringify(alarms));
+      }
+      if (a.time !== current) a.triggered = false;
+    });
+  }
+
+  function triggerAlarm(alarm) {
+    document.getElementById('ringingLabel').textContent = alarm.label;
+    document.getElementById('ringing').classList.add('active');
+    startBeep();
+    if (Notification.permission === "granted") {
+      new Notification("🔔 " + alarm.label, {
+        body: `Alarm ${alarm.time} berbunyi!`,
+        requireInteraction: true,
+        vibrate: [500, 500, 500]
+      });
+    }
+    // Wake Lock biar layar tetap nyala
+    if ('wakeLock' in navigator) {
+      navigator.wakeLock.request('screen').catch(()=>{});
+    }
+  }
+
+  function startBeep() {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    beepInterval = setInterval(() => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = 880; gain.gain.value = 0.3;
+      osc.start(); setTimeout(() => osc.stop(), 300);
+    }, 500);
+  }
+
+  function stopBeep() {
+    if (beepInterval) clearInterval(beepInterval);
+    if (audioCtx) audioCtx.close();
+  }
+
+  function stopAlarm() {
+    stopBeep();
+    document.getElementById('ringing').classList.remove('active');
+  }
+
+  function snooze() {
+    stopBeep();
+    document.getElementById('ringing').classList.remove('active');
+    const t = new Date(Date.now() + 5*60*1000);
+    const time = t.toTimeString().slice(0,5);
+    alarms.push({ id: Date.now(), time, label: 'Snooze', active: true });
+    localStorage.setItem('alarms', JSON.stringify(alarms));
+    renderAlarms();
+  }
+</script>
+</body>
+</html>
