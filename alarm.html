@@ -28,12 +28,25 @@
     width: 100%; padding: 10px; font-size: 1em;
     border: none; border-radius: 8px; background: #fff; color: #333; margin-bottom: 8px;
   }
+  .range-group {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .range-info {
+    background: rgba(255,235,59,0.15); border: 1px solid rgba(255,235,59,0.3);
+    border-radius: 8px; padding: 8px 12px; margin: 8px 0;
+    font-size: 0.85em; color: #ffeb3b;
+  }
+  .range-info.error {
+    background: rgba(229,57,53,0.15); border-color: rgba(229,57,53,0.3);
+    color: #ff8a80;
+  }
   button {
     padding: 10px 18px; border: none; border-radius: 8px;
     cursor: pointer; background: #ff9800; color: #fff;
     font-weight: bold; font-size: 1em; margin-top: 5px;
   }
   button:hover { background: #f57c00; }
+  button:disabled { background: #757575; cursor: not-allowed; opacity: 0.6; }
   .btn-test { background: #2196f3; }
   .btn-preset { background: #9c27b0; font-size: 0.85em; padding: 6px 10px; margin: 3px; }
   .preset-list { display: flex; flex-wrap: wrap; margin-bottom: 10px; }
@@ -92,13 +105,11 @@
     direction: rtl; margin: 10px 0; padding: 15px;
     background: rgba(255,255,255,0.1); border-radius: 15px;
     max-width: 95%; min-height: 80px;
-    transition: opacity 0.5s;
   }
   .translation {
     font-style: italic; opacity: 0.95;
     margin: 10px 0; max-width: 95%; font-size: 0.95em;
     padding: 10px; background: rgba(0,0,0,0.15); border-radius: 10px;
-    transition: opacity 0.5s;
   }
   .ayah-ref { font-size: 0.85em; opacity: 0.8; margin: 5px 0; }
   .nav-buttons {
@@ -113,24 +124,20 @@
   .snooze-btn { background: #2196f3; }
   .stop-btn { background: #e53935; }
 
-  /* Volume indicator */
   .volume-indicator {
     position: fixed; bottom: 20px; right: 20px;
     background: rgba(0,0,0,0.6); color: #fff;
     padding: 8px 14px; border-radius: 20px;
-    font-size: 0.85em; display: none;
-    z-index: 10000;
+    font-size: 0.85em; display: none; z-index: 10000;
   }
-  .volume-indicator.active { display: block; animation: fadeIn 0.3s; }
+  .volume-indicator.active { display: block; }
 
-  /* Countdown auto-close */
   .countdown-box {
     margin: 15px 0; padding: 15px 20px;
     background: rgba(255, 235, 59, 0.2);
     border: 2px solid #ffeb3b;
     border-radius: 12px;
-    display: none;
-    animation: fadeIn 0.5s;
+    display: none; animation: fadeIn 0.5s;
   }
   .countdown-box.active { display: block; }
   @keyframes fadeIn {
@@ -140,7 +147,6 @@
   .countdown-text { font-size: 1.1em; font-weight: bold; color: #ffeb3b; margin-bottom: 10px; }
   .countdown-number { font-size: 2em; font-weight: bold; color: #fff; margin: 5px 0; }
   .btn-cancel { background: #757575; font-size: 0.9em; padding: 8px 16px; }
-  .btn-cancel:hover { background: #616161; }
   .finished-icon { font-size: 3em; margin: 10px 0; animation: bounce 1s infinite; }
   @keyframes bounce {
     0%,100% { transform: translateY(0); }
@@ -151,7 +157,7 @@
 <body>
 
 <h1>🕌 Alarm Murottal Al-Quran</h1>
-<div class="subtitle">Putar hingga 100 ayat • Pilih qori berbeda per alarm</div>
+<div class="subtitle">Pilih rentang ayat dalam juz • Max 40 ayat</div>
 <div class="clock" id="clock">--:--:--</div>
 
 <!-- Form tambah alarm -->
@@ -168,21 +174,34 @@
   <select id="qariSelect"></select>
 
   <label>📖 Pilih Juz (1-30):</label>
-  <select id="juzSelect"><option value="">-- Pilih Juz --</option></select>
+  <select id="juzSelect">
+    <option value="">-- Pilih Juz dulu --</option>
+  </select>
 
-  <label>🎵 Ayat Populer:</label>
-  <div class="preset-list" id="presetList"></div>
+  <div id="juzInfoBox" style="display:none;">
+    <label>🔢 Rentang Ayat (dalam juz ini):</label>
+    <div class="range-group">
+      <div>
+        <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Awal</div>
+        <input type="number" id="ayahStart" min="1" placeholder="Awal">
+      </div>
+      <div>
+        <div style="font-size:0.8em;opacity:0.8;margin-bottom:2px;">Ayat Akhir</div>
+        <input type="number" id="ayahEnd" min="1" placeholder="Akhir">
+      </div>
+    </div>
+    <div class="range-info" id="rangeInfo">
+      Pilih ayat awal & akhir
+    </div>
 
-  <label>🔢 Nomor ayat awal (1-6236):</label>
-  <input type="number" id="ayahNumber" min="1" max="6236" placeholder="Contoh: 1 (Al-Fatihah:1)">
+    <label>🎵 Ayat Populer di Juz Ini:</label>
+    <div class="preset-list" id="presetList"></div>
 
-  <label>🔁 Jumlah ayat yang diputar (1-100):</label>
-  <input type="number" id="ayahCount" min="1" max="100" value="40" placeholder="Default: 40">
-
-  <button onclick="previewAyah()">👁️ Preview Ayat Awal</button>
-  <button onclick="addAlarm()">✅ Tambah Alarm</button>
-  <div class="status" id="status">Pilih qori & ayat untuk alarm Anda</div>
-  <div id="previewBox" style="margin-top:10px;"></div>
+    <button onclick="previewAyah()">👁️ Preview Rentang</button>
+    <button onclick="addAlarm()" id="btnAdd" disabled>✅ Tambah Alarm</button>
+    <div class="status" id="status">Pilih juz, lalu tentukan rentang ayat</div>
+    <div id="previewBox" style="margin-top:10px;"></div>
+  </div>
 </div>
 
 <!-- Daftar alarm -->
@@ -191,7 +210,7 @@
   <div id="alarmList"></div>
 </div>
 
-<!-- Overlay saat alarm berbunyi -->
+<!-- Overlay alarm -->
 <div class="ringing" id="ringing">
   <h2>🕌 Murottal Sedang Berputar</h2>
   <div class="qari-display" id="qariDisplay">🎙️ Qori: -</div>
@@ -212,7 +231,7 @@
     <div class="countdown-text">Murottal selesai! Kembali ke dashboard dalam:</div>
     <div class="countdown-number" id="countdownNumber">5</div>
     <div style="font-size:0.85em;opacity:0.9;margin-bottom:10px;">detik</div>
-    <button class="btn-cancel" onclick="cancelAutoClose()">✋ Batalkan (Tetap di sini)</button>
+    <button class="btn-cancel" onclick="cancelAutoClose()">✋ Batalkan</button>
   </div>
 
   <div class="ringing-buttons">
@@ -221,7 +240,6 @@
   </div>
 </div>
 
-<!-- Volume indicator -->
 <div class="volume-indicator" id="volumeIndicator">🔊 Volume: 100%</div>
 
 <script>
@@ -239,27 +257,46 @@
     { id: 'ar.hanirifai', name: 'Syekh Hani Ar-Rifai', flag: '🇸🇦' }
   ];
 
-  // ===== DATA PRESET =====
-  const PRESETS = [
-    { name: "Al-Fatihah:1", ayah: 1 },
-    { name: "Ayat Kursi (2:255)", ayah: 255 },
-    { name: "Al-Baqarah:286", ayah: 286 },
-    { name: "Yasin:1", ayah: 3262 },
-    { name: "Ar-Rahman:1", ayah: 4575 },
-    { name: "Al-Waqi'ah:1", ayah: 4893 },
-    { name: "Al-Ikhlas:1", ayah: 6227 },
-    { name: "Al-Falaq:1", ayah: 6230 },
-    { name: "An-Nas:1", ayah: 6232 }
+  // ===== DATA JUZ (global number ayat) =====
+  // Index 0 = Juz 1, dst.
+  const JUZ_RANGES = [
+    { juz: 1,  start: 1,    end: 148,   name: 'Al-Fatihah - Al-Baqarah:141' },
+    { juz: 2,  start: 149,  end: 252,   name: 'Al-Baqarah:142 - Al-Baqarah:252' },
+    { juz: 3,  start: 253,  end: 426,   name: 'Al-Baqarah:253 - Ali Imran:92' },
+    { juz: 4,  start: 427,  end: 511,   name: 'Ali Imran:93 - An-Nisa:23' },
+    { juz: 5,  start: 512,  end: 615,   name: 'An-Nisa:24 - An-Nisa:147' },
+    { juz: 6,  start: 616,  end: 740,   name: 'An-Nisa:148 - Al-Maidah:81' },
+    { juz: 7,  start: 741,  end: 861,   name: 'Al-Maidah:82 - Al-An\'am:110' },
+    { juz: 8,  start: 862,  end: 981,   name: 'Al-An\'am:111 - Al-A\'raf:87' },
+    { juz: 9,  start: 982,  end: 1106,  name: 'Al-A\'raf:88 - Al-Anfal:40' },
+    { juz: 10, start: 1107, end: 1222,  name: 'Al-Anfal:41 - At-Taubah:92' },
+    { juz: 11, start: 1223, end: 1319,  name: 'At-Taubah:93 - Hud:5' },
+    { juz: 12, start: 1320, end: 1413,  name: 'Hud:6 - Yusuf:52' },
+    { juz: 13, start: 1414, end: 1504,  name: 'Yusuf:53 - Ibrahim:52' },
+    { juz: 14, start: 1505, end: 1592,  name: 'Al-Hijr:1 - An-Nahl:128' },
+    { juz: 15, start: 1593, end: 1696,  name: 'Al-Isra:1 - Al-Kahf:74' },
+    { juz: 16, start: 1697, end: 1812,  name: 'Al-Kahf:75 - Taha:135' },
+    { juz: 17, start: 1813, end: 1930,  name: 'Al-Anbiya:1 - Al-Hajj:78' },
+    { juz: 18, start: 1931, end: 2067,  name: 'Al-Mu\'minun:1 - Al-Furqan:20' },
+    { juz: 19, start: 2068, end: 2215,  name: 'Al-Furqan:21 - An-Naml:55' },
+    { juz: 20, start: 2216, end: 2352,  name: 'An-Naml:56 - Al-Ankabut:45' },
+    { juz: 21, start: 2353, end: 2490,  name: 'Al-Ankabut:46 - Al-Ahzab:30' },
+    { juz: 22, start: 2491, end: 2629,  name: 'Al-Ahzab:31 - Yasin:27' },
+    { juz: 23, start: 2630, end: 2741,  name: 'Yasin:28 - Az-Zumar:31' },
+    { juz: 24, start: 2742, end: 2851,  name: 'Az-Zumar:32 - Fussilat:46' },
+    { juz: 25, start: 2852, end: 2981,  name: 'Fussilat:47 - Al-Jatsiyah:37' },
+    { juz: 26, start: 2982, end: 3112,  name: 'Al-Ahqaf:1 - Adz-Dzariyat:30' },
+    { juz: 27, start: 3113, end: 3274,  name: 'Adz-Dzariyat:31 - Al-Hadid:29' },
+    { juz: 28, start: 3275, end: 3429,  name: 'Al-Mujadilah:1 - At-Tahrim:12' },
+    { juz: 29, start: 3430, end: 3589,  name: 'Al-Mulk:1 - Al-Mursalat:50' },
+    { juz: 30, start: 3590, end: 6236,  name: 'An-Naba:1 - An-Nas:6' }
   ];
 
-  const JUZ_RANGES = [
-    1, 149, 253, 427, 512, 616, 741, 862, 982, 1107,
-    1223, 1320, 1414, 1505, 1593, 1697, 1813, 1931, 2068, 2216,
-    2353, 2491, 2630, 2742, 2852, 2982, 3113, 3275, 3430, 3590
-  ];
+  const MAX_AYAH_COUNT = 40;
 
   let alarms = JSON.parse(localStorage.getItem('alarms_quran') || '[]');
-  let selectedAyah = null;
+  let selectedRange = null;
+  let currentJuz = null;
 
   // ===== STATE ALARM =====
   let ayahQueue = [];
@@ -267,7 +304,6 @@
   let currentAudio = null;
   let isPaused = false;
   let isRinging = false;
-  let currentQari = 'ar.alafasy';
 
   // ===== STATE AUTO-CLOSE =====
   let countdownInterval = null;
@@ -276,12 +312,12 @@
 
   // ===== STATE FADE OUT =====
   let fadeInterval = null;
-  const FADE_DURATION = 5; // detik fade out di ayat terakhir
+  const FADE_DURATION = 5;
   const volumeIndicator = document.getElementById('volumeIndicator');
 
   // ===== INIT =====
   function init() {
-    // Populate qori dropdown
+    // Populate qori
     const qariSel = document.getElementById('qariSelect');
     QARI_LIST.forEach(q => {
       const opt = document.createElement('option');
@@ -290,33 +326,19 @@
       qariSel.appendChild(opt);
     });
 
-    // Populate juz dropdown
+    // Populate juz
     const juzSel = document.getElementById('juzSelect');
-    for (let i = 1; i <= 30; i++) {
-      const start = JUZ_RANGES[i-1];
-      const end = (i < 30) ? JUZ_RANGES[i] - 1 : 6236;
+    JUZ_RANGES.forEach(j => {
       const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = `Juz ${i} (ayat ${start}-${end})`;
+      opt.value = j.juz;
+      opt.textContent = `Juz ${j.juz} — ${j.name} (${j.end - j.start + 1} ayat)`;
       juzSel.appendChild(opt);
-    }
-    juzSel.onchange = () => {
-      const j = parseInt(juzSel.value);
-      if (j) document.getElementById('ayahNumber').value = JUZ_RANGES[j-1];
-    };
-
-    // Populate presets
-    const presetList = document.getElementById('presetList');
-    PRESETS.forEach(p => {
-      const btn = document.createElement('button');
-      btn.className = 'btn-preset';
-      btn.textContent = p.name;
-      btn.onclick = () => {
-        document.getElementById('ayahNumber').value = p.ayah;
-        previewAyah();
-      };
-      presetList.appendChild(btn);
     });
+    juzSel.onchange = onJuzChange;
+
+    // Event untuk input rentang
+    document.getElementById('ayahStart').oninput = updateRangeInfo;
+    document.getElementById('ayahEnd').oninput = updateRangeInfo;
 
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
@@ -327,13 +349,154 @@
     renderAlarms();
   }
 
+  // ===== SAAT JUZ DIPILIH =====
+  function onJuzChange() {
+    const juzNum = parseInt(document.getElementById('juzSelect').value);
+    if (!juzNum) {
+      document.getElementById('juzInfoBox').style.display = 'none';
+      currentJuz = null;
+      return;
+    }
+    currentJuz = JUZ_RANGES.find(j => j.juz === juzNum);
+    document.getElementById('juzInfoBox').style.display = 'block';
+
+    // Set min/max input ayat
+    const startInput = document.getElementById('ayahStart');
+    const endInput = document.getElementById('ayahEnd');
+    startInput.min = currentJuz.start;
+    startInput.max = currentJuz.end;
+    startInput.value = currentJuz.start;
+    endInput.min = currentJuz.start;
+    endInput.max = currentJuz.end;
+    endInput.value = Math.min(currentJuz.start + MAX_AYAH_COUNT - 1, currentJuz.end);
+
+    // Populate preset untuk juz ini
+    populatePresetsForJuz(currentJuz);
+
+    updateRangeInfo();
+    document.getElementById('previewBox').innerHTML = '';
+    selectedRange = null;
+  }
+
+  // ===== PRESET AYAT POPULER PER JUZ =====
+  function populatePresetsForJuz(juz) {
+    const presetList = document.getElementById('presetList');
+    presetList.innerHTML = '';
+
+    // Generate preset: ayat pertama juz, dan beberapa rentang menarik
+    const presets = [];
+
+    // 1. Awal juz
+    presets.push({
+      name: `Awal Juz (${juz.start})`,
+      start: juz.start,
+      end: Math.min(juz.start + 9, juz.end)
+    });
+
+    // 2. Tengah juz (kalau cukup panjang)
+    if (juz.end - juz.start >= 20) {
+      const mid = Math.floor((juz.start + juz.end) / 2);
+      presets.push({
+        name: `Tengah Juz (${mid})`,
+        start: mid,
+        end: Math.min(mid + 9, juz.end)
+      });
+    }
+
+    // 3. Akhir juz
+    if (juz.end - juz.start >= 10) {
+      presets.push({
+        name: `Akhir Juz (${juz.end - 9}-${juz.end})`,
+        start: Math.max(juz.start, juz.end - 9),
+        end: juz.end
+      });
+    }
+
+    // 4. Full juz (kalau <= 40 ayat)
+    if (juz.end - juz.start + 1 <= MAX_AYAH_COUNT) {
+      presets.push({
+        name: `Full Juz (${juz.end - juz.start + 1} ayat)`,
+        start: juz.start,
+        end: juz.end
+      });
+    }
+
+    // 5. 40 ayat dari awal (kalau juz panjang)
+    if (juz.end - juz.start + 1 > MAX_AYAH_COUNT) {
+      presets.push({
+        name: `40 Ayat Pertama`,
+        start: juz.start,
+        end: juz.start + MAX_AYAH_COUNT - 1
+      });
+    }
+
+    presets.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'btn-preset';
+      btn.textContent = p.name;
+      btn.onclick = () => {
+        document.getElementById('ayahStart').value = p.start;
+        document.getElementById('ayahEnd').value = p.end;
+        updateRangeInfo();
+      };
+      presetList.appendChild(btn);
+    });
+  }
+
+  // ===== UPDATE INFO RENTANG =====
+  function updateRangeInfo() {
+    const infoBox = document.getElementById('rangeInfo');
+    const btnAdd = document.getElementById('btnAdd');
+    const startVal = parseInt(document.getElementById('ayahStart').value);
+    const endVal = parseInt(document.getElementById('ayahEnd').value);
+
+    if (!currentJuz || isNaN(startVal) || isNaN(endVal)) {
+      infoBox.className = 'range-info';
+      infoBox.textContent = 'Isi ayat awal & akhir';
+      btnAdd.disabled = true;
+      return;
+    }
+
+    // Validasi
+    if (startVal < currentJuz.start || startVal > currentJuz.end) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Ayat awal harus antara ${currentJuz.start}-${currentJuz.end}`;
+      btnAdd.disabled = true;
+      return;
+    }
+    if (endVal < currentJuz.start || endVal > currentJuz.end) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Ayat akhir harus antara ${currentJuz.start}-${currentJuz.end}`;
+      btnAdd.disabled = true;
+      return;
+    }
+    if (endVal < startVal) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = '❌ Ayat akhir harus >= ayat awal';
+      btnAdd.disabled = true;
+      return;
+    }
+
+    const count = endVal - startVal + 1;
+    if (count > MAX_AYAH_COUNT) {
+      infoBox.className = 'range-info error';
+      infoBox.textContent = `❌ Max ${MAX_AYAH_COUNT} ayat. Terpilih: ${count} ayat. Silakan persempit rentang.`;
+      btnAdd.disabled = true;
+      return;
+    }
+
+    infoBox.className = 'range-info';
+    infoBox.innerHTML = `✅ Juz ${currentJuz.juz} • Ayat <b>${startVal} - ${endVal}</b> • Total: <b>${count} ayat</b>`;
+    btnAdd.disabled = false;
+  }
+
   function updateClock() {
     const now = new Date();
     document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
     checkAlarms(now);
   }
 
-  // ===== FETCH 1 AYAT (dengan qori pilihan) =====
+  // ===== FETCH 1 AYAT =====
   async function fetchAyah(ayahNumber, qariId = 'ar.alafasy') {
     const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,${qariId}`;
     try {
@@ -359,57 +522,85 @@
   }
 
   // ===== FETCH BATCH AYAT =====
-  async function fetchAyahBatch(startNumber, count, qariId) {
+  async function fetchAyahBatch(startNumber, endNumber, qariId) {
     const result = [];
+    const total = endNumber - startNumber + 1;
     const batchSize = 5;
-    for (let i = 0; i < count; i += batchSize) {
+    for (let i = 0; i < total; i += batchSize) {
       const batch = [];
-      for (let j = 0; j < batchSize && (i + j) < count; j++) {
-        const num = startNumber + i + j;
-        if (num > 6236) break;
-        batch.push(fetchAyah(num, qariId));
+      for (let j = 0; j < batchSize && (startNumber + i + j) <= endNumber; j++) {
+        batch.push(fetchAyah(startNumber + i + j, qariId));
       }
       const results = await Promise.all(batch);
       results.forEach(r => { if (r) result.push(r); });
       if (isRinging) {
         document.getElementById('progressText').textContent =
-          `Memuat... ${result.length} / ${count} ayat`;
+          `Memuat... ${result.length} / ${total} ayat`;
       }
     }
     return result;
   }
 
-  // ===== PREVIEW AYAT AWAL =====
+  // ===== PREVIEW RENTANG =====
   async function previewAyah() {
-    const num = parseInt(document.getElementById('ayahNumber').value);
+    const startVal = parseInt(document.getElementById('ayahStart').value);
+    const endVal = parseInt(document.getElementById('ayahEnd').value);
     const qariId = document.getElementById('qariSelect').value;
-    if (!num || num < 1 || num > 6236) {
-      document.getElementById('status').textContent = '❌ Nomor ayat harus 1-6236';
+
+    if (!currentJuz || isNaN(startVal) || isNaN(endVal) || endVal < startVal) {
+      document.getElementById('status').textContent = '❌ Rentang ayat tidak valid';
       return;
     }
-    document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat ayat...</div>';
-    const data = await fetchAyah(num, qariId);
-    if (!data) {
+
+    const count = endVal - startVal + 1;
+    if (count > MAX_AYAH_COUNT) {
+      document.getElementById('status').textContent = `❌ Max ${MAX_AYAH_COUNT} ayat`;
+      return;
+    }
+
+    document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat ayat awal & akhir...</div>';
+
+    // Fetch ayat awal & akhir saja untuk preview
+    const [firstAyah, lastAyah] = await Promise.all([
+      fetchAyah(startVal, qariId),
+      fetchAyah(endVal, qariId)
+    ]);
+
+    if (!firstAyah || !lastAyah) {
       document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat. Cek internet.</div>';
       return;
     }
-    selectedAyah = { number: num, qari: qariId, ...data };
-    const count = parseInt(document.getElementById('ayahCount').value) || 40;
-    const endNum = Math.min(num + count - 1, 6236);
+
     const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
+    selectedRange = {
+      start: startVal,
+      end: endVal,
+      count: count,
+      juz: currentJuz.juz,
+      qari: qariId,
+      qariName: qariName,
+      firstRef: firstAyah.ref,
+      lastRef: lastAyah.ref,
+      firstAudio: firstAyah.audioUrl
+    };
+
     document.getElementById('previewBox').innerHTML = `
       <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;">
-        <div style="font-size:0.85em;opacity:0.8;">${data.ref} (Juz ${data.juz})</div>
+        <div style="font-size:0.85em;opacity:0.8;">Juz ${currentJuz.juz}</div>
         <div style="font-size:0.8em;color:#ffeb3b;margin:5px 0;">🎙️ ${qariName}</div>
-        <div class="arabic" style="font-size:1.4em;margin:10px 0;">${data.arab}</div>
-        <div class="translation" style="font-size:0.9em;">"${data.translation}"</div>
-        <div style="font-size:0.85em;opacity:0.9;margin:8px 0;">
-          📖 Akan memutar <b>${count} ayat</b> dari <b>${data.ref}</b> sampai ayat #${endNum}
+        <div style="font-size:0.95em;margin:8px 0;">
+          📖 <b>${count} ayat</b> dari<br>
+          <b>${firstAyah.ref}</b> → <b>${lastAyah.ref}</b>
         </div>
-        <button class="btn-test" onclick="testAudio('${data.audioUrl}')">🔊 Test Suara</button>
+        <div style="font-size:0.85em;opacity:0.8;margin:5px 0;">
+          Global: #${startVal} - #${endVal}
+        </div>
+        <div class="arabic" style="font-size:1.3em;margin:10px 0;">${firstAyah.arab}</div>
+        <div class="translation" style="font-size:0.85em;">"${firstAyah.translation}"</div>
+        <button class="btn-test" onclick="testAudio('${firstAyah.audioUrl}')">🔊 Test Suara Ayat Awal</button>
       </div>
     `;
-    document.getElementById('status').textContent = `✅ Ayat ${num} siap dengan ${qariName}`;
+    document.getElementById('status').textContent = `✅ Rentang siap: ${count} ayat dari Juz ${currentJuz.juz}`;
   }
 
   function testAudio(url) {
@@ -422,28 +613,41 @@
   async function addAlarm() {
     const time = document.getElementById('alarmTime').value;
     const label = document.getElementById('alarmLabel').value || 'Alarm';
-    const num = parseInt(document.getElementById('ayahNumber').value);
-    const count = parseInt(document.getElementById('ayahCount').value) || 40;
+    const startVal = parseInt(document.getElementById('ayahStart').value);
+    const endVal = parseInt(document.getElementById('ayahEnd').value);
     const qariId = document.getElementById('qariSelect').value;
     const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
 
     if (!time) return alert('⏰ Pilih waktu!');
-    if (!num || num < 1 || num > 6236) return alert('📖 Pilih nomor ayat (1-6236)!');
-    if (count < 1 || count > 100) return alert('🔁 Jumlah ayat harus 1-100!');
+    if (!currentJuz) return alert('📖 Pilih juz!');
+    if (isNaN(startVal) || isNaN(endVal) || endVal < startVal) return alert('❌ Rentang ayat tidak valid!');
+    const count = endVal - startVal + 1;
+    if (count > MAX_AYAH_COUNT) return alert(`❌ Max ${MAX_AYAH_COUNT} ayat!`);
 
-    if (!selectedAyah || selectedAyah.number !== num || selectedAyah.qari !== qariId) {
+    // Kalau belum preview, fetch dulu untuk dapat ref
+    if (!selectedRange || selectedRange.start !== startVal || selectedRange.end !== endVal) {
       document.getElementById('status').textContent = '⏳ Memuat data ayat...';
-      const data = await fetchAyah(num, qariId);
-      if (!data) return alert('❌ Gagal memuat ayat.');
-      selectedAyah = { number: num, qari: qariId, ...data };
+      const [firstAyah, lastAyah] = await Promise.all([
+        fetchAyah(startVal, qariId),
+        fetchAyah(endVal, qariId)
+      ]);
+      if (!firstAyah || !lastAyah) return alert('❌ Gagal memuat ayat.');
+      selectedRange = {
+        start: startVal, end: endVal, count,
+        juz: currentJuz.juz, qari: qariId, qariName,
+        firstRef: firstAyah.ref, lastRef: lastAyah.ref
+      };
     }
 
     alarms.push({
       id: Date.now(),
       time, label,
-      startAyah: num,
+      juz: currentJuz.juz,
+      startAyah: startVal,
+      endAyah: endVal,
       count: count,
-      startRef: selectedAyah.ref,
+      firstRef: selectedRange.firstRef,
+      lastRef: selectedRange.lastRef,
       qari: qariId,
       qariName: qariName,
       active: true,
@@ -454,10 +658,8 @@
     document.getElementById('status').textContent = `✅ Alarm ${time} ditambahkan (${qariName})`;
     document.getElementById('alarmTime').value = '';
     document.getElementById('alarmLabel').value = '';
-    document.getElementById('ayahNumber').value = '';
-    document.getElementById('ayahCount').value = '40';
     document.getElementById('previewBox').innerHTML = '';
-    selectedAyah = null;
+    selectedRange = null;
   }
 
   function deleteAlarm(id) {
@@ -487,7 +689,8 @@
         <div class="info">
           <div class="time">${a.time} ${a.active?'🔔':'🔕'}</div>
           <div style="font-weight:bold;">${a.label}</div>
-          <div class="detail">📖 ${a.count} ayat mulai dari ${a.startRef}</div>
+          <div class="detail">📖 Juz ${a.juz} • Ayat ${a.startAyah}-${a.endAyah} (${a.count} ayat)</div>
+          <div class="detail" style="font-size:0.8em;">${a.firstRef} → ${a.lastRef}</div>
           <span class="qari-tag">🎙️ ${a.qariName || 'Alafasy'}</span>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;">
@@ -518,7 +721,6 @@
     currentAyahIndex = 0;
     ayahQueue = [];
     isPaused = false;
-    currentQari = alarm.qari || 'ar.alafasy';
 
     document.getElementById('ringing').classList.add('active');
     document.getElementById('progressText').textContent = `Memuat ${alarm.count} ayat...`;
@@ -530,7 +732,7 @@
     document.getElementById('qariDisplay').textContent = `🎙️ ${alarm.qariName || 'Syekh Alafasy'}`;
     hideCountdown();
 
-    ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.count, currentQari);
+    ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.endAyah, alarm.qari);
 
     if (ayahQueue.length === 0) {
       document.getElementById('progressText').textContent = '❌ Gagal memuat ayat';
@@ -539,7 +741,7 @@
 
     if (Notification.permission === "granted") {
       new Notification("🕌 " + alarm.label, {
-        body: `${ayahQueue.length} ayat • ${alarm.qariName}`,
+        body: `Juz ${alarm.juz} • ${ayahQueue.length} ayat • ${alarm.qariName}`,
         requireInteraction: true, vibrate: [500, 500, 500]
       });
     }
@@ -551,7 +753,7 @@
     playCurrentAyah();
   }
 
-  // ===== PUTAR AYAT SAAT INI =====
+  // ===== PUTAR AYAT =====
   function playCurrentAyah() {
     if (!isRinging || currentAyahIndex >= ayahQueue.length) {
       onMurottalFinished();
@@ -573,7 +775,7 @@
       currentAudio.pause();
       currentAudio = null;
     }
-    stopFadeOut(); // stop fade sebelumnya
+    stopFadeOut();
 
     currentAudio = new Audio(ayah.audioUrl);
     currentAudio.volume = 1.0;
@@ -591,26 +793,18 @@
 
     if (!isPaused) {
       currentAudio.play().then(() => {
-        // ===== JIKA AYAT TERAKHIR → AKTIFKAN FADE OUT =====
-        if (isLastAyah) {
-          startFadeOut(currentAudio);
-        }
+        if (isLastAyah) startFadeOut(currentAudio);
       }).catch(e => console.log('Autoplay gagal:', e));
     }
   }
 
-  // ===== FUNGSI FADE OUT (BARU) =====
+  // ===== FADE OUT =====
   function startFadeOut(audio) {
     stopFadeOut();
     volumeIndicator.classList.add('active');
-
     fadeInterval = setInterval(() => {
-      if (!audio || audio.paused || audio.ended) {
-        stopFadeOut();
-        return;
-      }
+      if (!audio || audio.paused || audio.ended) { stopFadeOut(); return; }
       if (!audio.duration || isNaN(audio.duration)) return;
-
       const remaining = audio.duration - audio.currentTime;
       if (remaining <= FADE_DURATION) {
         const newVolume = Math.max(0, remaining / FADE_DURATION);
@@ -623,14 +817,10 @@
   }
 
   function stopFadeOut() {
-    if (fadeInterval) {
-      clearInterval(fadeInterval);
-      fadeInterval = null;
-    }
+    if (fadeInterval) { clearInterval(fadeInterval); fadeInterval = null; }
     volumeIndicator.classList.remove('active');
   }
 
-  // ===== MUROTTAL SELESAI =====
   function onMurottalFinished() {
     stopFadeOut();
     document.getElementById('progressText').textContent = `✅ Selesai (${ayahQueue.length} ayat)`;
@@ -640,12 +830,10 @@
     startAutoCloseCountdown();
   }
 
-  // ===== COUNTDOWN AUTO-CLOSE =====
   function startAutoCloseCountdown() {
     countdownValue = AUTO_CLOSE_DELAY;
     document.getElementById('countdownBox').classList.add('active');
     document.getElementById('countdownNumber').textContent = countdownValue;
-
     countdownInterval = setInterval(() => {
       countdownValue--;
       document.getElementById('countdownNumber').textContent = countdownValue;
@@ -658,30 +846,20 @@
   }
 
   function cancelAutoClose() {
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     hideCountdown();
-    document.getElementById('progressText').textContent =
-      `⏸ Auto-close dibatalkan. (${ayahQueue.length} ayat selesai)`;
+    document.getElementById('progressText').textContent = `⏸ Auto-close dibatalkan.`;
     document.getElementById('ringingArabic').textContent = '🤲';
-    document.getElementById('ringingTranslation').textContent =
-      'Anda membatalkan auto-close. Silakan matikan manual jika sudah siap.';
+    document.getElementById('ringingTranslation').textContent = 'Silakan matikan manual jika sudah siap.';
   }
 
   function hideCountdown() {
     document.getElementById('countdownBox').classList.remove('active');
-    if (countdownInterval) {
-      clearInterval(countdownInterval);
-      countdownInterval = null;
-    }
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
   }
 
-  // ===== KONTROL NAVIGASI =====
   function nextAyah() {
-    hideCountdown();
-    stopFadeOut();
+    hideCountdown(); stopFadeOut();
     if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex < ayahQueue.length - 1) {
       currentAyahIndex++;
@@ -692,8 +870,7 @@
   }
 
   function prevAyah() {
-    hideCountdown();
-    stopFadeOut();
+    hideCountdown(); stopFadeOut();
     if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex > 0) {
       currentAyahIndex--;
@@ -709,28 +886,21 @@
     isPaused = !isPaused;
     if (isPaused) {
       currentAudio.pause();
-      stopFadeOut(); // pause juga fade out
+      stopFadeOut();
       document.getElementById('pauseBtn').textContent = '▶ Play';
     } else {
       currentAudio.play().catch(()=>{});
       document.getElementById('pauseBtn').textContent = '⏸ Pause';
-      // Kalau ayat terakhir, lanjutkan fade out
-      if (currentAyahIndex === ayahQueue.length - 1) {
-        startFadeOut(currentAudio);
-      }
+      if (currentAyahIndex === ayahQueue.length - 1) startFadeOut(currentAudio);
     }
   }
 
-  // ===== STOP & SNOOZE =====
   function stopAlarm() {
     isRinging = false;
     isPaused = false;
     stopFadeOut();
     hideCountdown();
-    if (currentAudio) {
-      currentAudio.pause();
-      currentAudio = null;
-    }
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
     ayahQueue = [];
     currentAyahIndex = 0;
     document.getElementById('ringing').classList.remove('active');
@@ -743,16 +913,17 @@
     const t = new Date(Date.now() + 9*60*1000);
     const time = t.toTimeString().slice(0,5);
     alarms.push({
-      id: Date.now(),
-      time,
+      id: Date.now(), time,
       label: 'Snooze: ' + lastAlarm.label,
+      juz: lastAlarm.juz,
       startAyah: lastAlarm.startAyah,
+      endAyah: lastAlarm.endAyah,
       count: lastAlarm.count,
-      startRef: lastAlarm.startRef,
+      firstRef: lastAlarm.firstRef,
+      lastRef: lastAlarm.lastRef,
       qari: lastAlarm.qari,
       qariName: lastAlarm.qariName,
-      active: true,
-      triggered: false
+      active: true, triggered: false
     });
     saveAlarms();
     renderAlarms();
