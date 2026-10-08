@@ -18,7 +18,6 @@
   .subtitle { opacity: 0.8; font-size: 0.9em; margin-bottom: 15px; text-align: center; }
   .clock { font-size: 3em; font-weight: bold; margin: 10px 0; text-shadow: 2px 2px 8px rgba(0,0,0,0.4); }
 
-  /* Tab navigation */
   .tabs {
     display: flex; gap: 5px; margin-bottom: 15px;
     background: rgba(0,0,0,0.2); padding: 5px; border-radius: 12px;
@@ -27,8 +26,7 @@
   .tab {
     flex: 1; padding: 10px; text-align: center;
     border-radius: 8px; cursor: pointer;
-    font-weight: bold; font-size: 0.9em;
-    transition: 0.2s;
+    font-weight: bold; font-size: 0.9em; transition: 0.2s;
   }
   .tab.active { background: #ff9800; color: #fff; }
   .tab:not(.active) { background: transparent; color: rgba(255,255,255,0.7); }
@@ -85,7 +83,19 @@
   .status { margin-top: 8px; font-size: 0.85em; color: #ffeb3b; }
   .loading { opacity: 0.7; font-style: italic; }
 
-  /* ===== PRAYER SCHEDULE CARD ===== */
+  /* Search box */
+  .search-box { position: relative; }
+  .search-box input { padding-right: 35px; }
+  .search-icon {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%); opacity: 0.5;
+    pointer-events: none;
+  }
+  .city-count {
+    font-size: 0.75em; opacity: 0.7; margin-top: -5px; margin-bottom: 8px;
+  }
+
+  /* Prayer card */
   .prayer-card {
     background: linear-gradient(135deg, rgba(156,39,176,0.3), rgba(103,58,183,0.3));
     border: 1px solid rgba(255,255,255,0.2);
@@ -120,14 +130,13 @@
   .prayer-toggle {
     width: 40px; height: 22px; border-radius: 11px;
     background: #757575; position: relative; cursor: pointer;
-    transition: 0.2s;
+    transition: 0.2s; flex-shrink: 0;
   }
   .prayer-toggle.on { background: #4caf50; }
   .prayer-toggle::after {
     content: ''; position: absolute;
     width: 18px; height: 18px; border-radius: 50%;
-    background: #fff; top: 2px; left: 2px;
-    transition: 0.2s;
+    background: #fff; top: 2px; left: 2px; transition: 0.2s;
   }
   .prayer-toggle.on::after { left: 20px; }
 
@@ -152,11 +161,9 @@
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 15px;
   }
-  .modal-close {
-    background: #e53935; padding: 5px 12px; font-size: 0.9em;
-  }
+  .modal-close { background: #e53935; padding: 5px 12px; font-size: 0.9em; }
 
-  /* ===== OVERLAY ALARM ===== */
+  /* Ringing overlay */
   .ringing {
     position: fixed; inset: 0;
     background: linear-gradient(135deg, #0d5c3d, #1a8f5f);
@@ -173,8 +180,7 @@
   .qari-display {
     font-size: 0.9em; opacity: 0.9;
     background: rgba(156, 39, 176, 0.3);
-    padding: 5px 15px; border-radius: 15px;
-    margin-bottom: 10px;
+    padding: 5px 15px; border-radius: 15px; margin-bottom: 10px;
   }
   .progress-bar {
     width: 100%; max-width: 400px; height: 8px;
@@ -219,8 +225,7 @@
   .countdown-box {
     margin: 15px 0; padding: 15px 20px;
     background: rgba(255, 235, 59, 0.2);
-    border: 2px solid #ffeb3b;
-    border-radius: 12px;
+    border: 2px solid #ffeb3b; border-radius: 12px;
     display: none; animation: fadeIn 0.5s;
   }
   .countdown-box.active { display: block; }
@@ -241,16 +246,15 @@
 <body>
 
 <h1>🕌 Alarm Murottal & Sholat</h1>
-<div class="subtitle">Alarm manual + Alarm sholat otomatis</div>
+<div class="subtitle">Alarm manual + Alarm sholat otomatis (400+ kota/kab)</div>
 <div class="clock" id="clock">--:--:--</div>
 
-<!-- TAB NAVIGATION -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('prayer')">🕌 Sholat</div>
-  <div class="tab" onclick="switchTab('manual')">⏰ Manual</div>
+  <div class="tab active" onclick="switchTab('prayer', event)">🕌 Sholat</div>
+  <div class="tab" onclick="switchTab('manual', event)">⏰ Manual</div>
 </div>
 
-<!-- ============ TAB: ALARM SHOLAT OTOMATIS ============ -->
+<!-- ============ TAB: ALARM SHOLAT ============ -->
 <div class="tab-content active" id="tab-prayer">
   <div class="card prayer-card">
     <div class="prayer-header">
@@ -258,23 +262,40 @@
       <button class="btn-small" onclick="refreshPrayerSchedule()" style="margin:0;padding:6px 10px;">🔄</button>
     </div>
 
-    <label>📍 Kota / Kabupaten:</label>
-    <select id="prayerCity">
-      <option value="">-- Pilih Kota --</option>
+    <label>🗺️ Pilih Provinsi:</label>
+    <select id="prayerProvince" onchange="onProvinceChange()">
+      <option value="">-- Pilih Provinsi --</option>
     </select>
-    <input type="text" id="prayerCityCustom" placeholder="Atau ketik nama kota/kabupaten lain" style="display:none;">
-    <button onclick="toggleCustomCity()" style="background:#607d8b;font-size:0.85em;padding:6px 12px;margin-top:0;">🔍 Cari kota lain</button>
+
+    <label>🏙️ Pilih Kota / Kabupaten:</label>
+    <div class="search-box">
+      <select id="prayerCity" disabled>
+        <option value="">-- Pilih provinsi dulu --</option>
+      </select>
+      <span class="search-icon">🔍</span>
+    </div>
+    <div class="city-count" id="cityCount"></div>
+
+    <label>🔍 Atau cari/ketik nama kota lain:</label>
+    <input type="text" id="prayerCityCustom" placeholder="Contoh: Bogor, Depok, Purwakarta, dll" list="citySuggestions">
+    <datalist id="citySuggestions"></datalist>
+    <button onclick="useCustomCity()" style="background:#607d8b;font-size:0.85em;padding:6px 12px;margin-top:0;">📍 Gunakan kota yang diketik</button>
+
+    <div id="selectedCityInfo" style="display:none;background:rgba(76,175,80,0.2);border:1px solid #4caf50;border-radius:8px;padding:10px;margin:10px 0;font-size:0.9em;">
+      <div style="font-weight:bold;">📍 Kota terpilih:</div>
+      <div id="selectedCityText">-</div>
+    </div>
 
     <label>⏰ Bunyikan berapa menit sebelum sholat:</label>
     <input type="number" id="prayerMinutesBefore" min="1" max="60" value="15">
 
     <button onclick="savePrayerSettings()">💾 Simpan & Aktifkan</button>
-    <div class="status" id="prayerStatus">Pilih kota untuk mulai</div>
+    <div class="status" id="prayerStatus">Pilih provinsi & kota untuk mulai</div>
   </div>
 
-  <!-- Jadwal Hari Ini -->
   <div class="card" id="scheduleCard" style="display:none;">
     <h3>📅 Jadwal Hari Ini</h3>
+    <div id="scheduleCityInfo" style="font-size:0.85em;opacity:0.8;margin-bottom:10px;"></div>
     <div class="next-prayer-box">
       <div style="font-size:0.85em;opacity:0.8;">Sholat Berikutnya</div>
       <div class="next-prayer-name" id="nextPrayerName">-</div>
@@ -282,9 +303,7 @@
       <div class="next-prayer-countdown" id="nextPrayerCountdown">-</div>
       <div class="next-prayer-alarm" id="nextPrayerAlarm">Alarm: --:--</div>
     </div>
-
     <div class="prayer-grid" id="prayerGrid"></div>
-
     <button class="prayer-settings-btn" onclick="openPrayerSettingsModal()">⚙️ Atur Qori & Ayat per Waktu Sholat</button>
   </div>
 </div>
@@ -293,20 +312,14 @@
 <div class="tab-content" id="tab-manual">
   <div class="card">
     <h3>➕ Tambah Alarm Manual</h3>
-
     <label>⏰ Waktu:</label>
     <input type="time" id="alarmTime">
-
     <label>📝 Label (opsional):</label>
     <input type="text" id="alarmLabel" placeholder="Contoh: murottal pagi">
-
     <label>🎙️ Pilih Qori:</label>
     <select id="qariSelect"></select>
-
     <label>📖 Pilih Juz (1-30):</label>
-    <select id="juzSelect">
-      <option value="">-- Pilih Juz dulu --</option>
-    </select>
+    <select id="juzSelect"><option value="">-- Pilih Juz dulu --</option></select>
 
     <div id="juzInfoBox" style="display:none;">
       <label>🔢 Rentang Ayat (dalam juz ini):</label>
@@ -321,10 +334,8 @@
         </div>
       </div>
       <div class="range-info" id="rangeInfo">Pilih ayat awal & akhir</div>
-
       <label>🎵 Ayat Populer di Juz Ini:</label>
       <div class="preset-list" id="presetList"></div>
-
       <button onclick="previewAyah()">👁️ Preview Rentang</button>
       <button onclick="addAlarm()" id="btnAdd" disabled>✅ Tambah Alarm</button>
       <div class="status" id="status">Pilih juz, lalu tentukan rentang ayat</div>
@@ -338,7 +349,7 @@
   </div>
 </div>
 
-<!-- ============ MODAL: SETTINGS PER WAKTU SHOLAT ============ -->
+<!-- ============ MODAL SETTINGS ============ -->
 <div class="modal" id="prayerSettingsModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -359,13 +370,11 @@
   <div class="ayah-ref" id="ringingRef">-</div>
   <div class="arabic" id="ringingArabic">⏳ Memuat...</div>
   <div class="translation" id="ringingTranslation">...</div>
-
   <div class="nav-buttons">
     <button class="btn-prev" onclick="prevAyah()">⏮ Sebelumnya</button>
     <button class="btn-pause" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
     <button class="btn-next" onclick="nextAyah()">⏭ Berikutnya</button>
   </div>
-
   <div class="countdown-box" id="countdownBox">
     <div class="finished-icon">✅</div>
     <div class="countdown-text">Murottal selesai! Kembali ke dashboard dalam:</div>
@@ -373,7 +382,6 @@
     <div style="font-size:0.85em;opacity:0.9;margin-bottom:10px;">detik</div>
     <button class="btn-cancel" onclick="cancelAutoClose()">✋ Batalkan</button>
   </div>
-
   <div class="ringing-buttons">
     <button class="snooze-btn" onclick="snooze()">😴 Tunda 9 Menit</button>
     <button class="stop-btn" onclick="stopAlarm()">✓ Matikan</button>
@@ -397,50 +405,83 @@
     { id: 'ar.hanirifai', name: 'Syekh Hani Ar-Rifai', flag: '🇸🇦' }
   ];
 
-  // ===== KOTA-KOTA BESAR DI INDONESIA (34 Ibu Kota Provinsi) =====
-  const PRAYER_CITIES = [
-    // Sumatera
-    { name: 'Banda Aceh', province: 'Aceh' },
-    { name: 'Medan', province: 'Sumatera Utara' },
-    { name: 'Padang', province: 'Sumatera Barat' },
-    { name: 'Pekanbaru', province: 'Riau' },
-    { name: 'Jambi', province: 'Jambi' },
-    { name: 'Palembang', province: 'Sumatera Selatan' },
-    { name: 'Bengkulu', province: 'Bengkulu' },
-    { name: 'Bandar Lampung', province: 'Lampung' },
-    { name: 'Pangkal Pinang', province: 'Kep. Bangka Belitung' },
-    // Jawa
-    { name: 'Jakarta', province: 'DKI Jakarta' },
-    { name: 'Bandung', province: 'Jawa Barat' },
-    { name: 'Semarang', province: 'Jawa Tengah' },
-    { name: 'Yogyakarta', province: 'DI Yogyakarta' },
-    { name: 'Surabaya', province: 'Jawa Timur' },
-    { name: 'Serang', province: 'Banten' },
-    // Kalimantan
-    { name: 'Pontianak', province: 'Kalimantan Barat' },
-    { name: 'Palangka Raya', province: 'Kalimantan Tengah' },
-    { name: 'Banjarmasin', province: 'Kalimantan Selatan' },
-    { name: 'Samarinda', province: 'Kalimantan Timur' },
-    { name: 'Tanjung Selor', province: 'Kalimantan Utara' },
-    // Sulawesi
-    { name: 'Manado', province: 'Sulawesi Utara' },
-    { name: 'Palu', province: 'Sulawesi Tengah' },
-    { name: 'Makassar', province: 'Sulawesi Selatan' },
-    { name: 'Kendari', province: 'Sulawesi Tenggara' },
-    { name: 'Gorontalo', province: 'Gorontalo' },
-    { name: 'Mamuju', province: 'Sulawesi Barat' },
-    // Bali & Nusa Tenggara
-    { name: 'Denpasar', province: 'Bali' },
-    { name: 'Mataram', province: 'Nusa Tenggara Barat' },
-    { name: 'Kupang', province: 'Nusa Tenggara Timur' },
-    // Maluku & Papua
-    { name: 'Ambon', province: 'Maluku' },
-    { name: 'Sofifi', province: 'Maluku Utara' },
-    { name: 'Jayapura', province: 'Papua' },
-    { name: 'Manokwari', province: 'Papua Barat' }
-  ];
+  // ===== DATABASE LENGKAP KOTA/KABUPATEN INDONESIA =====
+  // Group by Provinsi (34 provinsi) - total 400+ kota/kabupaten
+  const INDONESIA_REGIONS = {
+    'Aceh': ['Banda Aceh','Sabang','Lhokseumawe','Langsa','Subulussalam','Aceh Besar','Aceh Utara','Aceh Timur','Aceh Selatan','Aceh Barat','Aceh Barat Daya','Aceh Jaya','Aceh Tamiang','Aceh Singkil','Aceh Tenggara','Bener Meriah','Bireuen','Gayo Lues','Nagan Raya','Pidie','Pidie Jaya','Simeulue'],
 
-  // ===== DATA JUZ =====
+    'Sumatera Utara': ['Medan','Binjai','Tebing Tinggi','Pematang Siantar','Padang Sidempuan','Gunungsitoli','Asahan','Batubara','Dairi','Deli Serdang','Humbang Hasundutan','Karo','Labuhanbatu','Labuhanbatu Selatan','Labuhanbatu Utara','Langkat','Mandailing Natal','Nias','Nias Barat','Nias Selatan','Nias Utara','Padang Lawas','Padang Lawas Utara','Samosir','Serdang Bedagai','Simalungun','Tapanuli Tengah','Tapanuli Selatan','Tapanuli Utara','Toba'],
+
+    'Sumatera Barat': ['Padang','Padang Panjang','Bukittinggi','Payakumbuh','Sawahlunto','Solok','Agam','Dharmasraya','Kepulauan Mentawai','Lima Puluh Kota','Padang Pariaman','Pasaman','Pasaman Barat','Pesisir Selatan','Sijunjung','Solok','Solok Selatan','Tanah Datar'],
+
+    'Riau': ['Pekanbaru','Dumai','Bengkalis','Indragiri Hilir','Indragiri Hulu','Kampar','Kepulauan Meranti','Kuantan Singingi','Kuantan Singingi Barat','Kuantan Singingi Hulu','Pelalawan','Rokan Hilir','Rokan Hulu','Siak'],
+
+    'Jambi': ['Jambi','Sungai Penuh','Batanghari','Bungo','Kerinci','Merangin','Muaro Jambi','Sarolangun','Tanjung Jabung Barat','Tanjung Jabung Timur','Tebo'],
+
+    'Sumatera Selatan': ['Palembang','Lubuklinggau','Pagar Alam','Prabumulih','Banyuasin','Empat Lawang','Lahat','Muara Enim','Musi Banyuasin','Musi Rawas','Musi Rawas Utara','Ogan Ilir','Ogan Komering Ilir','Ogan Komering Ulu','Ogan Komering Ulu Selatan','Ogan Komering Ulu Timur','Penukal Abab Lematang Ilir'],
+
+    'Bengkulu': ['Bengkulu','Bengkulu Selatan','Bengkulu Tengah','Bengkulu Utara','Kaur','Kepahiang','Lebong','Mukomuko','Rejang Lebong','Seluma'],
+
+    'Lampung': ['Bandar Lampung','Metro','Lampung Barat','Lampung Selatan','Lampung Tengah','Lampung Timur','Lampung Utara','Mesuji','Pesawaran','Pesisir Barat','Pringsewu','Tanggamus','Tulang Bawang','Tulang Bawang Barat','Way Kanan'],
+
+    'Kepulauan Bangka Belitung': ['Pangkal Pinang','Bangka','Bangka Barat','Bangka Selatan','Bangka Tengah','Belitung','Belitung Timur'],
+
+    'Kepulauan Riau': ['Batam','Tanjung Pinang','Bintan','Karimun','Lingga','Natuna','Kepulauan Anambas'],
+
+    'DKI Jakarta': ['Jakarta Pusat','Jakarta Utara','Jakarta Barat','Jakarta Selatan','Jakarta Timur','Kepulauan Seribu'],
+
+    'Jawa Barat': ['Bandung','Bekasi','Bogor','Cimahi','Cirebon','Depok','Sukabumi','Tasikmalaya','Banjar','Bandung Barat','Bekasi','Ciamis','Cianjur','Garut','Indramayu','Karawang','Kuningan','Majalengka','Pangandaran','Purwakarta','Subang','Sumedang','Banjar'],
+
+    'Banten': ['Serang','Cilegon','Tangerang','Tangerang Selatan','Lebak','Pandeglang'],
+
+    'Jawa Tengah': ['Semarang','Surakarta (Solo)','Magelang','Pekalongan','Salatiga','Tegal','Banjarnegara','Banyumas','Blora','Boyolali','Brebes','Cilacap','Demak','Grobogan','Jepara','Karanganyar','Kebumen','Kendal','Klaten','Kudus','Pati','Pekalongan','Pemalang','Purbalingga','Purworejo','Rembang','Semarang','Sragen','Sukoharjo','Tegal','Temanggung','Wonogiri','Wonosobo'],
+
+    'DI Yogyakarta': ['Yogyakarta','Bantul','Gunungkidul','Kulon Progo','Sleman'],
+
+    'Jawa Timur': ['Surabaya','Malang','Batu','Blitar','Kediri','Madiun','Mojokerto','Pasuruan','Probolinggo','Bangkalan','Banyuwangi','Blitar','Bojonegoro','Bondowoso','Gresik','Jember','Jombang','Kediri','Lamongan','Lumajang','Madiun','Magetan','Malang','Mojokerto','Nganjuk','Ngawi','Pacitan','Pamekasan','Pasuruan','Ponorogo','Probolinggo','Sampang','Sidoarjo','Situbondo','Sumenep','Trenggalek','Tuban','Tulungagung'],
+
+    'Bali': ['Denpasar','Badung','Bangli','Buleleng','Gianyar','Jembrana','Karangasem','Klungkung','Tabanan'],
+
+    'Nusa Tenggara Barat': ['Mataram','Bima','Dompu','Lombok Barat','Lombok Tengah','Lombok Timur','Lombok Utara','Sumbawa','Sumbawa Barat'],
+
+    'Nusa Tenggara Timur': ['Kupang','Alor','Belu','Ende','Flores Timur','Komodo','Lembata','Malaka','Manggarai','Manggarai Barat','Manggarai Timur','Nagekeo','Ngada','Rote Ndao','Sabu Raijua','Sikka','Sumba Barat','Sumba Barat Daya','Sumba Tengah','Sumba Timur'],
+
+    'Kalimantan Barat': ['Pontianak','Singkawang','Bengkayang','Kapuas Hulu','Kayong Utara','Ketapang','Kubu Raya','Landak','Melawi','Mempawah','Sambas','Sanggau','Sekadau'],
+
+    'Kalimantan Tengah': ['Palangka Raya','Barito Selatan','Barito Timur','Barito Utara','Gunung Mas','Kapuas','Katingan','Kotawaringin Barat','Kotawaringin Timur','Lamandau','Murung Raya','Pulang Pisau','Sukamara','Seruyan'],
+
+    'Kalimantan Selatan': ['Banjarmasin','Banjarbaru','Balangan','Banjar','Barito Kuala','Hulu Sungai Selatan','Hulu Sungai Tengah','Hulu Sungai Utara','Kotabaru','Tabalong','Tanah Bumbu','Tanah Laut','Tapin'],
+
+    'Kalimantan Timur': ['Samarinda','Balikpapan','Bontang','Berau','Kutai Barat','Kutai Kartanegara','Kutai Paser','Mahakam Ulu','Penajam Paser Utara'],
+
+    'Kalimantan Utara': ['Tanjung Selor','Tarakan','Bulungan','Malinau','Nunukan','Tana Tidung'],
+
+    'Sulawesi Utara': ['Manado','Bitung','Tomohon','Kotamobagu','Bolaang Mongondow','Bolaang Mongondow Selatan','Bolaang Mongondow Timur','Bolaang Mongondow Utara','Kepulauan Sangihe','Kepulauan Siau Tagulandang Biaro','Kepulauan Talaud','Minahasa','Minahasa Selatan','Minahasa Tenggara','Minahasa Utara'],
+
+    'Gorontalo': ['Gorontalo','Bone Bolango','Gorontalo','Gorontalo Utara','Boalemo','Pohuwato'],
+
+    'Sulawesi Tengah': ['Palu','Banggai','Banggai Kepulauan','Banggai Laut','Buol','Donggala','Morowali','Morowali Utara','Parigi Moutong','Poso','Sigi','Tojo Una-Una'],
+
+    'Sulawesi Barat': ['Mamuju','Majene','Mamasa','Mamuju Tengah','Pasangkayu','Polewali Mandar'],
+
+    'Sulawesi Selatan': ['Makassar','Parepare','Palopo','Bantaeng','Barru','Bone','Bulukumba','Enrekang','Gowa','Jeneponto','Kepulauan Selayar','Luwu','Luwu Timur','Luwu Utara','Maros','Pangkajene dan Kepulauan','Pinrang','Sidenreng Rappang','Sinjai','Soppeng','Takalar','Tana Toraja','Toraja Utara','Wajo'],
+
+    'Sulawesi Tenggara': ['Kendari','Bau-Bau','Bombana','Buton','Buton Selatan','Buton Tengah','Buton Utara','Kolaka','Kolaka Timur','Kolaka Utara','Konawe','Konawe Kepulauan','Konawe Selatan','Konawe Utara','Muna','Muna Barat','Wakatobi'],
+
+    'Maluku': ['Ambon','Tual','Buru','Buru Selatan','Kepulauan Aru','Maluku Barat Daya','Maluku Tengah','Maluku Tenggara','Maluku Tenggara Barat','Seram Bagian Barat','Seram Bagian Timur'],
+
+    'Maluku Utara': ['Sofifi','Ternate','Tidore Kepulauan','Halmahera Barat','Halmahera Tengah','Halmahera Timur','Halmahera Selatan','Halmahera Utara','Kepulauan Sula','Pulau Morotai','Pulau Taliabu'],
+
+    'Papua': ['Jayapura','Biak Numfor','Boven Digoel','Deiyai','Dogiyai','Intan Jaya','Jayapura','Jayawijaya','Keerom','Kepulauan Yapen','Lanny Jaya','Mamberamo Raya','Mamberamo Tengah','Mappi','Merauke','Mimika','Nabire','Nduga','Paniai','Pegunungan Bintang','Puncak','Puncak Jaya','Sarmi','Supiori','Tolikara','Waropen','Yahukimo','Yalimo'],
+
+    'Papua Barat': ['Manokwari','Sorong','Fak-Fak','Kaimana','Manokwari Selatan','Maybrat','Pegunungan Arfak','Raja Ampat','Sorong','Sorong Selatan','Tambrauw','Teluk Bintuni','Teluk Wondama'],
+
+    'Papua Selatan': ['Merauke','Boven Digoel','Mappi','Asmat'],
+    'Papua Tengah': ['Nabire','Paniai','Mimika','Puncak','Puncak Jaya','Intan Jaya','Dogiyai','Deiyai'],
+    'Papua Pegunungan': ['Jayawijaya','Pegunungan Bintang','Yahukimo','Tolikara','Mamberamo Tengah','Yalimo','Lanny Jaya','Nduga'],
+    'Papua Barat Daya': ['Sorong','Sorong Selatan','Raja Ampat','Tambrauw','Maybrat'],
+  };
+
   const JUZ_RANGES = [
     { juz: 1,  start: 1,    end: 148,   name: 'Al-Fatihah - Al-Baqarah:141' },
     { juz: 2,  start: 149,  end: 252,   name: 'Al-Baqarah:142 - Al-Baqarah:252' },
@@ -484,12 +525,13 @@
   let alarms = JSON.parse(localStorage.getItem('alarms_quran') || '[]');
   let selectedAyah = null;
   let currentJuz = null;
+  let selectedProvince = '';
+  let selectedCity = '';
 
-  // Prayer state
   let prayerSettings = JSON.parse(localStorage.getItem('prayerSettings') || 'null') || {
     enabled: false,
     city: '',
-    country: 'Indonesia',
+    province: '',
     minutesBefore: 15,
     prayers: {
       Fajr:   { enabled: true, qari: 'ar.alafasy', startAyah: 1, endAyah: 7 },
@@ -503,7 +545,6 @@
     triggeredToday: {}
   };
 
-  // Alarm ringing state
   let ayahQueue = [];
   let currentAyahIndex = 0;
   let currentAudio = null;
@@ -536,30 +577,36 @@
       juzSel.appendChild(opt);
     });
     juzSel.onchange = onJuzChange;
-
     document.getElementById('ayahStart').oninput = updateRangeInfo;
     document.getElementById('ayahEnd').oninput = updateRangeInfo;
 
-    // Populate kota sholat
-    const citySel = document.getElementById('prayerCity');
-    PRAYER_CITIES.forEach(c => {
+    // Populate provinsi
+    const provSel = document.getElementById('prayerProvince');
+    Object.keys(INDONESIA_REGIONS).sort().forEach(prov => {
       const opt = document.createElement('option');
-      opt.value = c.name;
-      opt.textContent = `${c.name} (${c.province})`;
-      citySel.appendChild(opt);
+      opt.value = prov;
+      opt.textContent = `${prov} (${INDONESIA_REGIONS[prov].length} kota/kab)`;
+      provSel.appendChild(opt);
     });
 
-    // Load saved prayer settings
-    if (prayerSettings.city) {
-      const citySel2 = document.getElementById('prayerCity');
-      const match = PRAYER_CITIES.find(c => c.name === prayerSettings.city);
-      if (match) {
-        citySel2.value = prayerSettings.city;
-      } else {
-        // Kota custom
-        citySel2.value = '';
-        document.getElementById('prayerCityCustom').value = prayerSettings.city;
-        document.getElementById('prayerCityCustom').style.display = 'block';
+    // Populate datalist untuk autocomplete
+    populateCityDatalist();
+
+    // Load saved settings
+    if (prayerSettings.province) {
+      document.getElementById('prayerProvince').value = prayerSettings.province;
+      onProvinceChange(false);
+      if (prayerSettings.city) {
+        const citySel = document.getElementById('prayerCity');
+        if ([...citySel.options].some(o => o.value === prayerSettings.city)) {
+          citySel.value = prayerSettings.city;
+          selectedCity = prayerSettings.city;
+          updateSelectedCityInfo();
+        } else {
+          document.getElementById('prayerCityCustom').value = prayerSettings.city;
+          selectedCity = prayerSettings.city;
+          updateSelectedCityInfo();
+        }
       }
     }
     document.getElementById('prayerMinutesBefore').value = prayerSettings.minutesBefore || 15;
@@ -573,33 +620,94 @@
     renderAlarms();
     renderPrayerSchedule();
 
-    // Fetch jadwal sholat jika ada kota
-    if (prayerSettings.city) {
-      refreshPrayerSchedule();
+    if (prayerSettings.city) refreshPrayerSchedule();
+  }
+
+  // ===== POPULATE DATALIST (autocomplete semua kota) =====
+  function populateCityDatalist() {
+    const datalist = document.getElementById('citySuggestions');
+    const allCities = [];
+    Object.keys(INDONESIA_REGIONS).forEach(prov => {
+      INDONESIA_REGIONS[prov].forEach(city => {
+        allCities.push(`${city} (${prov})`);
+      });
+    });
+    datalist.innerHTML = allCities.map(c => `<option value="${c}">`).join('');
+  }
+
+  // ===== PROVINCE CHANGE =====
+  function onProvinceChange(autoSelect = true) {
+    const prov = document.getElementById('prayerProvince').value;
+    const citySel = document.getElementById('prayerCity');
+    citySel.innerHTML = '';
+
+    if (!prov) {
+      citySel.innerHTML = '<option value="">-- Pilih provinsi dulu --</option>';
+      citySel.disabled = true;
+      document.getElementById('cityCount').textContent = '';
+      return;
     }
+
+    selectedProvince = prov;
+    const cities = INDONESIA_REGIONS[prov] || [];
+    citySel.disabled = false;
+    citySel.innerHTML = '<option value="">-- Pilih Kota/Kabupaten --</option>';
+    cities.sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
+      citySel.appendChild(opt);
+    });
+
+    document.getElementById('cityCount').textContent = `📊 ${cities.length} kota/kabupaten tersedia di ${prov}`;
+
+    citySel.onchange = () => {
+      selectedCity = citySel.value;
+      document.getElementById('prayerCityCustom').value = '';
+      updateSelectedCityInfo();
+    };
+  }
+
+  // ===== USE CUSTOM CITY =====
+  function useCustomCity() {
+    const custom = document.getElementById('prayerCityCustom').value.trim();
+    if (!custom) {
+      alert('❌ Ketik nama kota/kabupaten dulu!');
+      return;
+    }
+    // Bersihkan "(Provinsi)" kalau ada
+    const cleanName = custom.replace(/\s*\(.*?\)\s*$/, '').trim();
+    selectedCity = cleanName;
+    document.getElementById('prayerCity').value = '';
+    updateSelectedCityInfo();
+  }
+
+  function updateSelectedCityInfo() {
+    const infoBox = document.getElementById('selectedCityInfo');
+    if (!selectedCity) {
+      infoBox.style.display = 'none';
+      return;
+    }
+    infoBox.style.display = 'block';
+    const prov = selectedProvince || 'Provinsi belum dipilih';
+    document.getElementById('selectedCityText').innerHTML =
+      `<b>${selectedCity}</b><br><small style="opacity:0.8;">${prov} • Indonesia</small>`;
+  }
+
+  function getSelectedCity() {
+    return selectedCity || document.getElementById('prayerCity').value ||
+           document.getElementById('prayerCityCustom').value.trim().replace(/\s*\(.*?\)\s*$/, '');
   }
 
   // ===== TAB SWITCHING =====
-  function switchTab(tab) {
+  function switchTab(tab, event) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     event.target.classList.add('active');
     document.getElementById('tab-' + tab).classList.add('active');
   }
 
-  // ===== CUSTOM CITY TOGGLE =====
-  function toggleCustomCity() {
-    const custom = document.getElementById('prayerCityCustom');
-    custom.style.display = custom.style.display === 'none' ? 'block' : 'none';
-  }
-
-  function getSelectedCity() {
-    const fromDropdown = document.getElementById('prayerCity').value;
-    const custom = document.getElementById('prayerCityCustom').value.trim();
-    return custom || fromDropdown;
-  }
-
-  // ===== CLOCK & CHECK =====
+  // ===== CLOCK =====
   function updateClock() {
     const now = new Date();
     document.getElementById('clock').textContent = now.toTimeString().slice(0,8);
@@ -607,7 +715,6 @@
     checkPrayerAlarms(now);
     updateNextPrayerCountdown(now);
 
-    // Auto-refresh jadwal sholat setiap tengah malam
     const today = now.toISOString().slice(0,10);
     if (prayerSettings.lastFetchDate !== today && prayerSettings.city) {
       refreshPrayerSchedule();
@@ -636,26 +743,22 @@
       const timings = data.data.timings;
       prayerSettings.todaySchedule = {
         date: dateStr,
-        Fajr: timings.Fajr,
-        Dhuhr: timings.Dhuhr,
-        Asr: timings.Asr,
-        Maghrib: timings.Maghrib,
-        Isha: timings.Isha
+        Fajr: timings.Fajr, Dhuhr: timings.Dhuhr, Asr: timings.Asr,
+        Maghrib: timings.Maghrib, Isha: timings.Isha
       };
       prayerSettings.lastFetchDate = now.toISOString().slice(0,10);
-      prayerSettings.triggeredToday = {}; // reset trigger hari ini
+      prayerSettings.triggeredToday = {};
       localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
 
-      document.getElementById('prayerStatus').textContent = `✅ Jadwal berhasil dimuat untuk ${city}`;
+      document.getElementById('prayerStatus').textContent = `✅ Jadwal dimuat untuk ${city}`;
       document.getElementById('scheduleCard').style.display = 'block';
       renderPrayerSchedule();
     } catch (e) {
-      console.error('Gagal fetch jadwal:', e);
-      document.getElementById('prayerStatus').textContent = '❌ Gagal memuat jadwal. Cek koneksi/nama kota.';
+      console.error('Gagal fetch:', e);
+      document.getElementById('prayerStatus').textContent = '❌ Gagal memuat. Cek nama kota atau koneksi.';
     }
   }
 
-  // ===== SAVE PRAYER SETTINGS =====
   function savePrayerSettings() {
     const city = getSelectedCity();
     if (!city) {
@@ -666,13 +769,12 @@
 
     prayerSettings.enabled = true;
     prayerSettings.city = city;
+    prayerSettings.province = selectedProvince;
     prayerSettings.minutesBefore = minutesBefore;
     localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
-
     refreshPrayerSchedule();
   }
 
-  // ===== RENDER JADWAL SHOLAT =====
   function renderPrayerSchedule() {
     if (!prayerSettings.todaySchedule) return;
 
@@ -681,8 +783,10 @@
     const grid = document.getElementById('prayerGrid');
     grid.innerHTML = '';
 
-    let nextPrayer = null;
-    let nextPrayerTime = null;
+    document.getElementById('scheduleCityInfo').innerHTML =
+      `📍 <b>${prayerSettings.city}</b>${prayerSettings.province ? ' • ' + prayerSettings.province : ''}`;
+
+    let nextPrayer = null, nextPrayerTime = null;
 
     Object.keys(PRAYER_NAMES).forEach(key => {
       const timeStr = prayerSettings.todaySchedule[key];
@@ -691,10 +795,7 @@
       const isPassed = prayerMinutes <= currentTime;
       const isNext = !isPassed && !nextPrayer;
 
-      if (isNext) {
-        nextPrayer = key;
-        nextPrayerTime = prayerMinutes;
-      }
+      if (isNext) { nextPrayer = key; nextPrayerTime = prayerMinutes; }
 
       const alarmMinutes = prayerMinutes - (prayerSettings.minutesBefore || 15);
       const alarmH = Math.floor(alarmMinutes / 60);
@@ -715,7 +816,6 @@
       grid.appendChild(item);
     });
 
-    // Update next prayer box
     if (nextPrayer) {
       document.getElementById('nextPrayerName').textContent = PRAYER_NAMES[nextPrayer];
       document.getElementById('nextPrayerTime').textContent = prayerSettings.todaySchedule[nextPrayer];
@@ -736,15 +836,13 @@
     if (!prayerSettings.todaySchedule) return;
     const currentTime = now.getHours() * 60 + now.getMinutes() + now.getSeconds()/60;
 
-    let nextKey = null;
-    let nextMinutes = null;
+    let nextKey = null, nextMinutes = null;
     Object.keys(PRAYER_NAMES).forEach(key => {
       const timeStr = prayerSettings.todaySchedule[key];
       const [h, m] = timeStr.split(':').map(Number);
       const prayerMin = h * 60 + m;
       if (prayerMin > currentTime && !nextKey) {
-        nextKey = key;
-        nextMinutes = prayerMin;
+        nextKey = key; nextMinutes = prayerMin;
       }
     });
 
@@ -764,10 +862,9 @@
     renderPrayerSchedule();
   }
 
-  // ===== CEK ALARM SHOLAT =====
   function checkPrayerAlarms(now) {
     if (!prayerSettings.enabled || !prayerSettings.todaySchedule) return;
-    if (isRinging) return; // jangan trigger kalau sedang ada alarm aktif
+    if (isRinging) return;
 
     const currentHM = now.toTimeString().slice(0,5);
     const minutesBefore = prayerSettings.minutesBefore || 15;
@@ -792,7 +889,6 @@
     });
   }
 
-  // ===== PICU ALARM SHOLAT =====
   async function triggerPrayerAlarm(prayerKey) {
     const prayer = prayerSettings.prayers[prayerKey];
     const prayerName = PRAYER_NAMES[prayerKey];
@@ -802,12 +898,9 @@
     document.getElementById('qariDisplay').textContent =
       `🎙️ ${QARI_LIST.find(q => q.id === prayer.qari)?.name || 'Alafasy'} • ${prayerTime}`;
 
-    // Fetch ayat
-    const count = prayer.endAyah - prayer.startAyah + 1;
     ayahQueue = await fetchAyahBatch(prayer.startAyah, prayer.endAyah, prayer.qari);
-
     if (ayahQueue.length === 0) {
-      alert('❌ Gagal memuat ayat untuk alarm sholat');
+      alert('❌ Gagal memuat ayat');
       return;
     }
 
@@ -822,33 +915,23 @@
 
     if (Notification.permission === "granted") {
       new Notification(`🕌 ${prayerName} - ${prayerTime}`, {
-        body: `${minutesBeforeText(prayerSettings.minutesBefore)} lagi • ${ayahQueue.length} ayat`,
+        body: `${prayerSettings.minutesBefore} menit lagi • ${ayahQueue.length} ayat`,
         requireInteraction: true, vibrate: [500, 500, 500]
       });
     }
 
-    if ('wakeLock' in navigator) {
-      navigator.wakeLock.request('screen').catch(()=>{});
-    }
-
+    if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
     playCurrentAyah();
   }
 
-  function minutesBeforeText(m) {
-    return m === 1 ? '1 menit' : `${m} menit`;
-  }
-
-  // ===== MODAL SETTINGS PER SHOLAT =====
   function openPrayerSettingsModal() {
     const body = document.getElementById('prayerSettingsBody');
     body.innerHTML = '';
-
     Object.keys(PRAYER_NAMES).forEach(key => {
       const prayer = prayerSettings.prayers[key];
       const qariOptions = QARI_LIST.map(q =>
         `<option value="${q.id}" ${prayer.qari===q.id?'selected':''}>${q.flag} ${q.name}</option>`
       ).join('');
-
       body.innerHTML += `
         <div style="background:rgba(255,255,255,0.1);padding:10px;border-radius:8px;margin-bottom:10px;">
           <div style="font-weight:bold;margin-bottom:8px;">🕌 ${PRAYER_NAMES[key]}</div>
@@ -863,7 +946,6 @@
         </div>
       `;
     });
-
     document.getElementById('prayerSettingsModal').classList.add('active');
   }
 
@@ -882,10 +964,10 @@
     });
     localStorage.setItem('prayerSettings', JSON.stringify(prayerSettings));
     closePrayerSettingsModal();
-    alert('✅ Setting per waktu sholat disimpan');
+    alert('✅ Setting disimpan');
   }
 
-  // ===== FETCH AYAT (untuk alarm sholat & manual) =====
+  // ===== FETCH AYAT =====
   async function fetchAyah(ayahNumber, qariId = 'ar.alafasy') {
     const url = `https://api.alquran.cloud/v1/ayah/${ayahNumber}/editions/quran-uthmani,id.indonesian,${qariId}`;
     try {
@@ -894,20 +976,12 @@
       if (data.code !== 200) return null;
       const [arab, indo, audio] = data.data;
       return {
-        globalNumber: arab.number,
-        arab: arab.text,
-        translation: indo.text,
-        audioUrl: audio.audio,
-        surah: arab.surah.name,
-        surahEn: arab.surah.englishName,
-        numberInSurah: arab.numberInSurah,
-        juz: arab.juz,
-        ref: `${arab.surah.englishName} : ${arab.numberInSurah}`
+        globalNumber: arab.number, arab: arab.text, translation: indo.text,
+        audioUrl: audio.audio, surah: arab.surah.name,
+        surahEn: arab.surah.englishName, numberInSurah: arab.numberInSurah,
+        juz: arab.juz, ref: `${arab.surah.englishName} : ${arab.numberInSurah}`
       };
-    } catch (e) {
-      console.error('Fetch ayat gagal:', e);
-      return null;
-    }
+    } catch (e) { return null; }
   }
 
   async function fetchAyahBatch(startNumber, endNumber, qariId) {
@@ -929,26 +1003,21 @@
     return result;
   }
 
-  // ===== ALARM MANUAL FUNCTIONS =====
+  // ===== ALARM MANUAL =====
   function onJuzChange() {
     const juzNum = parseInt(document.getElementById('juzSelect').value);
     if (!juzNum) {
       document.getElementById('juzInfoBox').style.display = 'none';
-      currentJuz = null;
-      return;
+      currentJuz = null; return;
     }
     currentJuz = JUZ_RANGES.find(j => j.juz === juzNum);
     document.getElementById('juzInfoBox').style.display = 'block';
-
     const startInput = document.getElementById('ayahStart');
     const endInput = document.getElementById('ayahEnd');
-    startInput.min = currentJuz.start;
-    startInput.max = currentJuz.end;
+    startInput.min = currentJuz.start; startInput.max = currentJuz.end;
     startInput.value = currentJuz.start;
-    endInput.min = currentJuz.start;
-    endInput.max = currentJuz.end;
+    endInput.min = currentJuz.start; endInput.max = currentJuz.end;
     endInput.value = Math.min(currentJuz.start + MAX_AYAH_COUNT - 1, currentJuz.end);
-
     populatePresetsForJuz(currentJuz);
     updateRangeInfo();
     document.getElementById('previewBox').innerHTML = '';
@@ -958,8 +1027,9 @@
   function populatePresetsForJuz(juz) {
     const presetList = document.getElementById('presetList');
     presetList.innerHTML = '';
-    const presets = [];
-    presets.push({ name: `Awal Juz (${juz.start})`, start: juz.start, end: Math.min(juz.start + 9, juz.end) });
+    const presets = [
+      { name: `Awal Juz (${juz.start})`, start: juz.start, end: Math.min(juz.start + 9, juz.end) }
+    ];
     if (juz.end - juz.start >= 20) {
       const mid = Math.floor((juz.start + juz.end) / 2);
       presets.push({ name: `Tengah Juz (${mid})`, start: mid, end: Math.min(mid + 9, juz.end) });
@@ -991,37 +1061,31 @@
     const btnAdd = document.getElementById('btnAdd');
     const startVal = parseInt(document.getElementById('ayahStart').value);
     const endVal = parseInt(document.getElementById('ayahEnd').value);
-
     if (!currentJuz || isNaN(startVal) || isNaN(endVal)) {
       infoBox.className = 'range-info';
       infoBox.textContent = 'Isi ayat awal & akhir';
-      btnAdd.disabled = true;
-      return;
+      btnAdd.disabled = true; return;
     }
     if (startVal < currentJuz.start || startVal > currentJuz.end) {
       infoBox.className = 'range-info error';
       infoBox.textContent = `❌ Ayat awal harus antara ${currentJuz.start}-${currentJuz.end}`;
-      btnAdd.disabled = true;
-      return;
+      btnAdd.disabled = true; return;
     }
     if (endVal < currentJuz.start || endVal > currentJuz.end) {
       infoBox.className = 'range-info error';
       infoBox.textContent = `❌ Ayat akhir harus antara ${currentJuz.start}-${currentJuz.end}`;
-      btnAdd.disabled = true;
-      return;
+      btnAdd.disabled = true; return;
     }
     if (endVal < startVal) {
       infoBox.className = 'range-info error';
       infoBox.textContent = '❌ Ayat akhir harus >= ayat awal';
-      btnAdd.disabled = true;
-      return;
+      btnAdd.disabled = true; return;
     }
     const count = endVal - startVal + 1;
     if (count > MAX_AYAH_COUNT) {
       infoBox.className = 'range-info error';
       infoBox.textContent = `❌ Max ${MAX_AYAH_COUNT} ayat. Terpilih: ${count} ayat.`;
-      btnAdd.disabled = true;
-      return;
+      btnAdd.disabled = true; return;
     }
     infoBox.className = 'range-info';
     infoBox.innerHTML = `✅ Juz ${currentJuz.juz} • Ayat <b>${startVal} - ${endVal}</b> • Total: <b>${count} ayat</b>`;
@@ -1033,16 +1097,14 @@
     const endVal = parseInt(document.getElementById('ayahEnd').value);
     const qariId = document.getElementById('qariSelect').value;
     if (!currentJuz || isNaN(startVal) || isNaN(endVal) || endVal < startVal) {
-      document.getElementById('status').textContent = '❌ Rentang ayat tidak valid';
-      return;
+      document.getElementById('status').textContent = '❌ Rentang tidak valid'; return;
     }
     document.getElementById('previewBox').innerHTML = '<div class="loading">⏳ Memuat...</div>';
     const [firstAyah, lastAyah] = await Promise.all([
       fetchAyah(startVal, qariId), fetchAyah(endVal, qariId)
     ]);
     if (!firstAyah || !lastAyah) {
-      document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat.</div>';
-      return;
+      document.getElementById('previewBox').innerHTML = '<div style="color:#ff9800">❌ Gagal memuat.</div>'; return;
     }
     const qariName = QARI_LIST.find(q => q.id === qariId)?.name || qariId;
     selectedAyah = { start: startVal, end: endVal, qari: qariId, firstRef: firstAyah.ref, lastRef: lastAyah.ref };
@@ -1079,7 +1141,6 @@
     if (count > MAX_AYAH_COUNT) return alert(`❌ Max ${MAX_AYAH_COUNT} ayat!`);
 
     if (!selectedAyah || selectedAyah.start !== startVal || selectedAyah.end !== endVal) {
-      document.getElementById('status').textContent = '⏳ Memuat data...';
       const [firstAyah, lastAyah] = await Promise.all([
         fetchAyah(startVal, qariId), fetchAyah(endVal, qariId)
       ]);
@@ -1120,8 +1181,7 @@
   function renderAlarms() {
     const list = document.getElementById('alarmList');
     if (!alarms.length) {
-      list.innerHTML = '<p style="opacity:0.7;text-align:center;">Belum ada alarm manual</p>';
-      return;
+      list.innerHTML = '<p style="opacity:0.7;text-align:center;">Belum ada alarm manual</p>'; return;
     }
     list.innerHTML = alarms.map(a => `
       <div class="alarm-item" style="${a.active?'':'opacity:0.5'}">
@@ -1159,14 +1219,12 @@
     currentAyahIndex = 0;
     ayahQueue = await fetchAyahBatch(alarm.startAyah, alarm.endAyah, alarm.qari);
     if (ayahQueue.length === 0) {
-      document.getElementById('progressText').textContent = '❌ Gagal memuat ayat';
-      return;
+      document.getElementById('progressText').textContent = '❌ Gagal memuat ayat'; return;
     }
     document.getElementById('ringing').classList.add('active');
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('pauseBtn').textContent = '⏸ Pause';
     hideCountdown();
-
     if (Notification.permission === "granted") {
       new Notification("🕌 " + alarm.label, {
         body: `${ayahQueue.length} ayat • ${alarm.qariName}`,
@@ -1177,11 +1235,9 @@
     playCurrentAyah();
   }
 
-  // ===== PLAY AYAT (shared) =====
   function playCurrentAyah() {
     if (!isRinging || currentAyahIndex >= ayahQueue.length) {
-      onMurottalFinished();
-      return;
+      onMurottalFinished(); return;
     }
     const ayah = ayahQueue[currentAyahIndex];
     const total = ayahQueue.length;
@@ -1250,8 +1306,7 @@
       countdownValue--;
       document.getElementById('countdownNumber').textContent = countdownValue;
       if (countdownValue <= 0) {
-        clearInterval(countdownInterval);
-        countdownInterval = null;
+        clearInterval(countdownInterval); countdownInterval = null;
         stopAlarm();
       }
     }, 1000);
@@ -1274,8 +1329,7 @@
     hideCountdown(); stopFadeOut();
     if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex < ayahQueue.length - 1) {
-      currentAyahIndex++;
-      isPaused = false;
+      currentAyahIndex++; isPaused = false;
       document.getElementById('pauseBtn').textContent = '⏸ Pause';
       playCurrentAyah();
     }
@@ -1285,8 +1339,7 @@
     hideCountdown(); stopFadeOut();
     if (currentAudio) currentAudio.volume = 1.0;
     if (currentAyahIndex > 0) {
-      currentAyahIndex--;
-      isPaused = false;
+      currentAyahIndex--; isPaused = false;
       document.getElementById('pauseBtn').textContent = '⏸ Pause';
       playCurrentAyah();
     }
@@ -1315,21 +1368,16 @@
   }
 
   function snooze() {
-    // Snooze hanya untuk alarm manual
     const lastAlarm = alarms.find(a => a.triggered) || alarms[alarms.length - 1];
     stopAlarm();
     if (!lastAlarm) return;
     const t = new Date(Date.now() + 9*60*1000);
     const time = t.toTimeString().slice(0,5);
     alarms.push({
-      id: Date.now(), time,
-      label: 'Snooze: ' + lastAlarm.label,
-      juz: lastAlarm.juz,
-      startAyah: lastAlarm.startAyah, endAyah: lastAlarm.endAyah,
-      count: lastAlarm.count,
-      firstRef: lastAlarm.firstRef, lastRef: lastAlarm.lastRef,
-      qari: lastAlarm.qari, qariName: lastAlarm.qariName,
-      active: true, triggered: false
+      id: Date.now(), time, label: 'Snooze: ' + lastAlarm.label,
+      juz: lastAlarm.juz, startAyah: lastAlarm.startAyah, endAyah: lastAlarm.endAyah,
+      count: lastAlarm.count, firstRef: lastAlarm.firstRef, lastRef: lastAlarm.lastRef,
+      qari: lastAlarm.qari, qariName: lastAlarm.qariName, active: true, triggered: false
     });
     saveAlarms(); renderAlarms();
   }
