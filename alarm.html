@@ -923,6 +923,23 @@
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').catch(()=>{});
     playCurrentAyah();
   }
+ // 🔥 TAMBAHKAN DI HTML ANDA - Di dalam fungsi yang trigger alarm
+
+function triggerAlarm(audioUrl) {
+    // Cek apakah berjalan di Android dengan bridge
+    if (typeof AndroidAlarm !== 'undefined' && AndroidAlarm !== null) {
+        // Panggil Java via JavaScript Interface
+        AndroidAlarm.playAlarm(audioUrl);
+    } else {
+        // Fallback: play audio biasa di browser
+        var audio = new Audio(audioUrl);
+        audio.loop = true;
+        audio.play();
+    }
+}
+
+// Contoh penggunaan saat alarm tiba:
+// triggerAlarm("https://server8.mp3quran.net/afs/001.mp3");
 
   function openPrayerSettingsModal() {
     const body = document.getElementById('prayerSettingsBody');
